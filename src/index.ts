@@ -308,11 +308,11 @@ export const getMintTx = async (
   unit: string,
 ): Promise<{ txHash: string; metadata: { key: string; json: object }[] } | null> => {
   ensureInit();
-  if (unit==='Un-minted') {
+  if (unit === 'Un-minted') {
     return {
-        txHash:'',
-        metadata: []
-    }
+      txHash: '',
+      metadata: [],
+    };
   }
   if (!_pgClient) return null;
   const mintTx = await _pgClient.query(
