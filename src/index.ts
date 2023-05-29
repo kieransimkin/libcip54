@@ -206,38 +206,82 @@ export async function getUTXOsFromStake(
 > {
   ensureInit();
   if (!_pgClient) return [];
-  let utres: any = await _pgClient.query(
-    `
-    SELECT 
-        encode(tx.hash,'hex') as txHash, 
-        tx_out."index", 
-        tx_out.address, 
-        tx_out.value,
-        (
-            SELECT json_agg(row_to_json(X2)) FROM 
-            (
-                SELECT
-                    matx2.quantity, 
-                    concat(encode(ma2.policy,'hex'), encode(ma2.name, 'hex')) AS unit
-                FROM ma_tx_out matx2
-                    LEFT JOIN multi_asset ma2 ON (ma2.id=matx2.ident)
-                WHERE matx2.tx_out_id=tx_out.id
-            ) AS X2
-        ) AS multiasset,
-        CASE WHEN d1.value IS NOT NULL THEN d1.value WHEN d2.value IS NOT NULL THEN d2.value ELSE NULL END datum
-    FROM utxo_view
-      JOIN tx_out         ON (tx_out.id = utxo_view.id)
-      JOIN stake_address  ON (stake_address.id = utxo_view.stake_address_id)
-      JOIN tx             ON (tx.id = utxo_view.tx_id)
-      LEFT JOIN datum d1  ON (d1.hash = tx_out.data_hash AND d1.tx_id = tx.id)
-      LEFT JOIN datum d2  ON (d2.id = tx_out.inline_datum_id)
-        WHERE (stake_address.view = $1::TEXT)
-            AND tx.valid_contract = 'true'`,
-    [stakeAddress],
-  );
-  utres = utres.rows;
-  return utres;
+
+  return await getUTXOsFromEither(stakeAddress,null,page);
 }
+
+export async function getUTXOsFromEither(
+    stakeAddress: string | null,
+    baseAddress: string | null,
+    page: number = 0,
+  ): Promise<
+    {
+      txHash: string;
+      index: number;
+      address: string;
+      value: number;
+      multiasset: { quantity: number; unit: string }[];
+      datum: any | null;
+    }[]
+  > {
+    ensureInit();
+    if (!_pgClient) return [];
+    let filter = "(stake_address.view = $1::TEXT)";
+    let field = stakeAddress;
+    if (baseAddress) { 
+        filter = "(tx_out.address = $1::TEXT)";
+        field = baseAddress;
+    }
+    let utres: any = await _pgClient.query(
+      `
+      SELECT 
+          encode(tx.hash,'hex') as txHash, 
+          tx_out."index", 
+          tx_out.address, 
+          tx_out.value,
+          (
+              SELECT json_agg(row_to_json(X2)) FROM 
+              (
+                  SELECT
+                      matx2.quantity, 
+                      concat(encode(ma2.policy,'hex'), encode(ma2.name, 'hex')) AS unit
+                  FROM ma_tx_out matx2
+                      LEFT JOIN multi_asset ma2 ON (ma2.id=matx2.ident)
+                  WHERE matx2.tx_out_id=tx_out.id
+              ) AS X2
+          ) AS multiasset,
+          CASE WHEN d1.value IS NOT NULL THEN d1.value WHEN d2.value IS NOT NULL THEN d2.value ELSE NULL END datum
+      FROM utxo_view
+        JOIN tx_out         ON (tx_out.id = utxo_view.id)
+        JOIN stake_address  ON (stake_address.id = utxo_view.stake_address_id)
+        JOIN tx             ON (tx.id = utxo_view.tx_id)
+        LEFT JOIN datum d1  ON (d1.hash = tx_out.data_hash AND d1.tx_id = tx.id)
+        LEFT JOIN datum d2  ON (d2.id = tx_out.inline_datum_id)
+          WHERE ${filter}
+              AND tx.valid_contract = 'true'`,
+      [field],
+    );
+    utres = utres.rows;
+    return utres;
+  }
+
+export async function getUTXOsFromAddr(
+    baseAddress: string,
+    page: number=0): Promise<
+    {
+      txHash: string;
+      index: number;
+      address: string;
+      value: number;
+      multiasset: { quantity: number; unit: string }[];
+      datum: any | null;
+    }[]
+  > {
+    ensureInit();
+    if (!_pgClient) return [];
+  
+    return await getUTXOsFromEither(null,baseAddress,page);
+  }
 
 export async function getLibraries(featureTree: {
   libraries: { name: string; version: string }[];
