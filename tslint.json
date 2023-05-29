@@ -1,7 +1,8 @@
 {
     "extends": ["tslint:recommended", "tslint-config-prettier"],
     "rules": {
-        "no-empty": [true, "allow-empty-catch"]
+        "no-empty": [true, "allow-empty-catch"],
+        "no-bitwise": false
     }
     
 }

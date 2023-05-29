@@ -559,7 +559,7 @@ export function fromHex(hex: string): Uint8Array {
   }
 // This is a partial reimplementation of CRC-8 (node-crc) in Deno: https://github.com/alexgorbatchev/node-crc
 
-let TABLE: Array<number> | Int32Array = [
+let TABLE: number[] | Int32Array = [
     0x00,
     0x07,
     0x0e,
