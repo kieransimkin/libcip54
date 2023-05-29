@@ -207,33 +207,33 @@ export async function getUTXOsFromStake(
   ensureInit();
   if (!_pgClient) return [];
 
-  return await getUTXOsFromEither(stakeAddress,null,page);
+  return await getUTXOsFromEither(stakeAddress, null, page);
 }
 
 export async function getUTXOsFromEither(
-    stakeAddress: string | null,
-    baseAddress: string | null,
-    page: number = 0,
-  ): Promise<
-    {
-      txHash: string;
-      index: number;
-      address: string;
-      value: number;
-      multiasset: { quantity: number; unit: string }[];
-      datum: any | null;
-    }[]
-  > {
-    ensureInit();
-    if (!_pgClient) return [];
-    let filter = "(stake_address.view = $1::TEXT)";
-    let field = stakeAddress;
-    if (baseAddress) { 
-        filter = "(tx_out.address = $1::TEXT)";
-        field = baseAddress;
-    }
-    let utres: any = await _pgClient.query(
-      `
+  stakeAddress: string | null,
+  baseAddress: string | null,
+  page: number = 0,
+): Promise<
+  {
+    txHash: string;
+    index: number;
+    address: string;
+    value: number;
+    multiasset: { quantity: number; unit: string }[];
+    datum: any | null;
+  }[]
+> {
+  ensureInit();
+  if (!_pgClient) return [];
+  let filter = '(stake_address.view = $1::TEXT)';
+  let field = stakeAddress;
+  if (baseAddress) {
+    filter = '(tx_out.address = $1::TEXT)';
+    field = baseAddress;
+  }
+  let utres: any = await _pgClient.query(
+    `
       SELECT 
           encode(tx.hash,'hex') as txHash, 
           tx_out."index", 
@@ -259,29 +259,30 @@ export async function getUTXOsFromEither(
         LEFT JOIN datum d2  ON (d2.id = tx_out.inline_datum_id)
           WHERE ${filter}
               AND tx.valid_contract = 'true'`,
-      [field],
-    );
-    utres = utres.rows;
-    return utres;
-  }
+    [field],
+  );
+  utres = utres.rows;
+  return utres;
+}
 
 export async function getUTXOsFromAddr(
-    baseAddress: string,
-    page: number=0): Promise<
-    {
-      txHash: string;
-      index: number;
-      address: string;
-      value: number;
-      multiasset: { quantity: number; unit: string }[];
-      datum: any | null;
-    }[]
-  > {
-    ensureInit();
-    if (!_pgClient) return [];
-  
-    return await getUTXOsFromEither(null,baseAddress,page);
-  }
+  baseAddress: string,
+  page: number = 0,
+): Promise<
+  {
+    txHash: string;
+    index: number;
+    address: string;
+    value: number;
+    multiasset: { quantity: number; unit: string }[];
+    datum: any | null;
+  }[]
+> {
+  ensureInit();
+  if (!_pgClient) return [];
+
+  return await getUTXOsFromEither(null, baseAddress, page);
+}
 
 export async function getLibraries(featureTree: {
   libraries: { name: string; version: string }[];
