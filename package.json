@@ -34,7 +34,6 @@
   "dependencies": {
     "@emurgo/cardano-serialization-lib-nodejs": "^11.4.0",
     "@types/pg": "^8.10.1",
-    "lucid-cardano": "^0.10.5",
     "pg": "^8.11.0"
   }
 }
