@@ -4,7 +4,7 @@
   "description": "Cardano Smart NFT Library",
   "main": "lib/index.js",
   "types": "lib/index.d.ts",
-  "homepage": "https://nft-playground.dev/",
+  "homepage": "https://nft-playground.dev",
   "repository": "https://github.com/kieransimkin/libcip54.git",
   "author": "Kieran Simkin <382129+kieransimkin@users.noreply.github.com>",
   "license": "BSD-3-Clause-Attribution",
