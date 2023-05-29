@@ -211,22 +211,22 @@ export async function getUTXOsFromStake(
 }
 
 export async function getUTXOsFromAddr(
-    baseAddress: string,
-    page: number = 0,
-  ): Promise<
-    {
-      txHash: string;
-      index: number;
-      address: string;
-      value: number;
-      multiasset: { quantity: number; unit: string }[];
-      datum: any | null;
-    }[]
-  > {
-    ensureInit();
-    if (!_pgClient) return [];
-  
-    return await getUTXOsFromEither(null, baseAddress, page);
+  baseAddress: string,
+  page: number = 0,
+): Promise<
+  {
+    txHash: string;
+    index: number;
+    address: string;
+    value: number;
+    multiasset: { quantity: number; unit: string }[];
+    datum: any | null;
+  }[]
+> {
+  ensureInit();
+  if (!_pgClient) return [];
+
+  return await getUTXOsFromEither(null, baseAddress, page);
 }
 
 export async function getUTXOsFromEither(
@@ -283,8 +283,6 @@ export async function getUTXOsFromEither(
   utres = utres.rows;
   return utres;
 }
-
-
 
 export async function getLibraries(featureTree: {
   libraries: { name: string; version: string }[];
