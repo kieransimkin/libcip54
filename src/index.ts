@@ -402,7 +402,7 @@ export const getCIP68Metadata = async (unit: string): Promise<any> => {
         JOIN tx_out         ON (tx_out.id = ma_tx_out.tx_out_id)
         JOIN tx             ON (tx.id = tx_out.tx_id)
         JOIN utxo_view      ON (utxo_view.id = ma_tx_out.tx_out_id) 
-        LEFT JOIN datum d1  ON (d1.hash = tx_out.data_hash AND d1.tx_id = tx.id)
+        LEFT JOIN datum d1  ON (d1.hash = tx_out.data_hash)
         LEFT JOIN datum d2  ON (d2.id = tx_out.inline_datum_id)
     WHERE valid_contract = 'true'
         AND policy = decode($1::TEXT, 'hex')
