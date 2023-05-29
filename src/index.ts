@@ -413,30 +413,50 @@ export const getCIP68Metadata = async (unit: string): Promise<any> => {
   return metadata;
 };
 
-export const getSmartImports = async (featureTree: {libraries: {name: string, version: string}[], tokens: string[] | string, utxos: string[] | string, transactions: string[] | string, mintTx?: boolean, files?: boolean }, walletAddr: string, tokenUnit: string) => { 
-    const ret:any = {libraries:[], css: [], tokens: {}, utxos: {}, transactions: {}, ownerAddr: walletAddr, fetchedAt: new Date(), tokenUnit};
-    if (featureTree?.libraries?.length>0) { 
-        const librariesResult = await getLibraries(featureTree);
-        ret.libraries=librariesResult.libraries;
-        ret.css=librariesResult.css;
-    }
-    if (featureTree?.tokens?.length>0) { 
-        ret.tokens = await getTokens(featureTree, walletAddr);
-    }
-    if (featureTree?.utxos?.length>0) { 
-        ret.utxos = await getUTXOs(featureTree, walletAddr);
-    }
-    if (featureTree?.transactions?.length>0) { 
-        ret.transactions = await getTransactions(featureTree, walletAddr);
-    }
-    if (featureTree?.mintTx) { 
-        ret.mintTx=await getMintTx(tokenUnit);;
-    }
-    if (featureTree?.files) { 
-        ret.files=true;
-    }
-    return ret;
-}
+export const getSmartImports = async (
+  featureTree: {
+    libraries: { name: string; version: string }[];
+    tokens: string[] | string;
+    utxos: string[] | string;
+    transactions: string[] | string;
+    mintTx?: boolean;
+    files?: boolean;
+  },
+  walletAddr: string,
+  tokenUnit: string,
+) => {
+  const ret: any = {
+    libraries: [],
+    css: [],
+    tokens: {},
+    utxos: {},
+    transactions: {},
+    ownerAddr: walletAddr,
+    fetchedAt: new Date(),
+    tokenUnit,
+  };
+  if (featureTree?.libraries?.length > 0) {
+    const librariesResult = await getLibraries(featureTree);
+    ret.libraries = librariesResult.libraries;
+    ret.css = librariesResult.css;
+  }
+  if (featureTree?.tokens?.length > 0) {
+    ret.tokens = await getTokens(featureTree, walletAddr);
+  }
+  if (featureTree?.utxos?.length > 0) {
+    ret.utxos = await getUTXOs(featureTree, walletAddr);
+  }
+  if (featureTree?.transactions?.length > 0) {
+    ret.transactions = await getTransactions(featureTree, walletAddr);
+  }
+  if (featureTree?.mintTx) {
+    ret.mintTx = await getMintTx(tokenUnit);
+  }
+  if (featureTree?.files) {
+    ret.files = true;
+  }
+  return ret;
+};
 
 // Util functions
 
