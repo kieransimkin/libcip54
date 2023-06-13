@@ -37,9 +37,9 @@ export async function getTransactions(
   }
   return ret;
 }
-export const getVersion = async () => { 
-  return process.env.npm_package_version|| '0';
-}
+export const getVersion = async () => {
+  return process.env.npm_package_version || '0';
+};
 
 // Todo - detect full addresses rather than stake addresses and do a slightly different query for them
 export async function getTransactionsFromStake(stakeAddress: string, page: number = 0): Promise<any> {
@@ -487,7 +487,7 @@ export const getSmartImports = async (
     ownerAddr: walletAddr,
     fetchedAt: new Date(),
     tokenUnit,
-    libcip54Version: getVersion()
+    libcip54Version: getVersion(),
   };
   if (featureTree?.libraries?.length > 0) {
     const librariesResult = await getLibraries(featureTree);
