@@ -298,12 +298,11 @@ export async function getLibraries(featureTree: {
     for (const file of files) {
       if (
         !file.includes('.min.') || // skip file if it doesn't include .min
-        (name === 'three.js' && file.includes('.module.')) ||
-        (name === 'phaser' && file.includes('-ie9')) ||
+        (name === 'three.js' && file.includes('.module.')) || // for three.js don't load the module version
+        (name === 'phaser' && file.includes('-ie9')) || // for phaser exclude a few files which don't work
         (name === 'phaser' && file.includes('.esm.')) ||
         (name === 'phaser' && file.includes('arcade-physics'))
-      ) {
-        // for three.js don't load the module version
+      ) { 
         continue;
       }
       const url = 'https://cdnjs.cloudflare.com/ajax/libs/' + library.name + '/' + library.version + '/' + file;
