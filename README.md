@@ -19,7 +19,7 @@ export default async () => {
     const client = new pgCon.Client({connectionString: process.env.DBSYNC_URI});
     client.connect();
     init('mainnet', pgClient);
-    const metadata={...};
+    const metadata={...}; // the NFT metadata as a javascript object
     const ownerAddr='Bech32 address of current owner';
     const tokenUnit='<policyID><assetNameHex>';
     const smartImports = await getSmartImports(metadata?.uses, ownerAddr, tokenUnit)
