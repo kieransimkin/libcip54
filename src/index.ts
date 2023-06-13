@@ -302,7 +302,7 @@ export async function getLibraries(featureTree: {
         (name === 'phaser' && file.includes('-ie9')) || // for phaser exclude a few files which don't work
         (name === 'phaser' && file.includes('.esm.')) ||
         (name === 'phaser' && file.includes('arcade-physics'))
-      ) { 
+      ) {
         continue;
       }
       const url = 'https://cdnjs.cloudflare.com/ajax/libs/' + library.name + '/' + library.version + '/' + file;
