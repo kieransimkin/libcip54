@@ -489,7 +489,7 @@ export const getSmartImports = async (
     tokenUnit,
     libcip54Version: '0',
   };
-  ret.libcip54Version=getVersion()
+  ret.libcip54Version = getVersion();
   if (featureTree?.libraries?.length > 0) {
     const librariesResult = await getLibraries(featureTree);
     ret.libraries = librariesResult.libraries;
