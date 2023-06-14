@@ -5,7 +5,7 @@ let _pgClient: pgCon.Client | null = null;
 export const REFERENCE_TOKEN_LABEL = 100;
 export const USER_TOKEN_LABEL = 222;
 export const CIP25_LABEL = 721;
-import { version } from '../package.json';
+import pJSON from '../package.json';
 export const init = (networkId: 'mainnet' | 'testnet', connection: pgCon.Client) => {
   _networkId = networkId === 'testnet' ? 0 : 1;
   _pgClient = connection;
@@ -38,7 +38,7 @@ export async function getTransactions(
   return ret;
 }
 export const getVersion = () => {
-  return version || '0';
+  return pJSON.version || '0';
 };
 
 // Todo - detect full addresses rather than stake addresses and do a slightly different query for them
