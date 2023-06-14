@@ -38,7 +38,7 @@ export async function getTransactions(
   return ret;
 }
 export const getVersion = () => {
-  return process.env.npm_package_version || '0';
+  return version || '0';
 };
 
 // Todo - detect full addresses rather than stake addresses and do a slightly different query for them
