@@ -37,7 +37,7 @@ export async function getTransactions(
   }
   return ret;
 }
-export const getVersion = async () => {
+export const getVersion = () => {
   return process.env.npm_package_version || '0';
 };
 
@@ -487,8 +487,9 @@ export const getSmartImports = async (
     ownerAddr: walletAddr,
     fetchedAt: new Date(),
     tokenUnit,
-    libcip54Version: getVersion(),
+    libcip54Version: '0',
   };
+  ret.libcip54Version=getVersion()
   if (featureTree?.libraries?.length > 0) {
     const librariesResult = await getLibraries(featureTree);
     ret.libraries = librariesResult.libraries;
