@@ -502,13 +502,12 @@ export const getFilesFromArray = async (
   unit: string,
   files: ({ src?: string; mediaType?: string } | string)[],
 ): Promise<any> => {
-  const result:any ={};
+  const result: any = {};
   for (const file of files) {
     if (file === 'own') {
-      result[unit]=await getFiles(unit);
+      result[unit] = await getFiles(unit);
     } else if (typeof file === 'string') {
-      result[file]=await getFiles(file);
-      
+      result[file] = await getFiles(file);
     } else if (file?.src) {
       const tfile: { src?: string; mediaType?: string } = { ...file };
       // const file = {}
@@ -516,7 +515,7 @@ export const getFilesFromArray = async (
       const sresult: { mediaType: any; buffer: any } = await getFileFromSrc(tfile?.src || '', tfile?.mediaType || '');
       const blob = new Blob([sresult.buffer], { type: sresult.mediaType });
       tfile.src = await getDataURLFromBlob(blob);
-      if (!result[unit]) result[unit]=[];
+      if (!result[unit]) result[unit] = [];
       result[unit].push(tfile);
     }
   }
