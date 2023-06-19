@@ -605,7 +605,7 @@ export const getSmartImports = async (
     utxos: string[] | string;
     transactions: string[] | string;
     mintTx?: boolean;
-    files?: boolean | ({ src?: string; mediaType?: string } | string)[];
+    files?: boolean | string | ({ src?: string; mediaType?: string } | string)[];
   },
   walletAddr: string,
   tokenUnit: string,
@@ -643,6 +643,9 @@ export const getSmartImports = async (
     if (typeof featureTree?.files === 'boolean') {
       ret.files = featureTree?.files;
     } else {
+      if (typeof featureTree?.files === "string") { 
+        featureTree.files=[featureTree?.files];
+      }
       ret.files = await getFilesFromArray(tokenUnit, featureTree?.files);
     }
   }
