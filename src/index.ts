@@ -521,7 +521,8 @@ export const getFilesFromArray = async (
         result[unit].push(tfile);
       }
     } catch (e) { 
-      console.log('Error getting files:'+e);
+      if (!result.error) result.error=[];
+      result.error.push('Error getting files:'+e);
     }
   }
   return result;
