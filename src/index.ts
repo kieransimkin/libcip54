@@ -536,7 +536,7 @@ export const getFilesFromArray = async (
       if (!result.error) result.error = [];
       result.error.push('Error getting files:(' + unit + ' ' + file + '): ' + e);
     }
-    if (result[unit].length > 5) break; // limit from downloading too many files, the front end api will always download them individually if it needs to
+    if (result[unit]?.length > 5) break; // limit from downloading too many files, the front end api will always download them individually if it needs to
   }
   return result;
 };
