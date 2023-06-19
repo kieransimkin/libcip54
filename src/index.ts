@@ -1,14 +1,19 @@
 import pgCon from 'pg';
+import axios from 'axios';
 import * as CSL from '@emurgo/cardano-serialization-lib-nodejs';
 let _networkId: number | null = null;
 let _pgClient: pgCon.Client | null = null;
 export const REFERENCE_TOKEN_LABEL = 100;
 export const USER_TOKEN_LABEL = 222;
 export const CIP25_LABEL = 721;
+let IPFS_GATEWAY:string | null = null;
+let ARWEAVE_GATEWAY:string | null = null;
 import pJSON from '../package.json';
-export const init = (networkId: 'mainnet' | 'testnet', connection: pgCon.Client) => {
+export const init = (networkId: 'mainnet' | 'testnet', connection: pgCon.Client, ipfsGateway: string | null = null, arweaveGateway: string | null = null) => {
   _networkId = networkId === 'testnet' ? 0 : 1;
   _pgClient = connection;
+  IPFS_GATEWAY=ipfsGateway;
+  ARWEAVE_GATEWAY=arweaveGateway;
 };
 
 const ensureInit = () => {
@@ -465,6 +470,117 @@ export const getCIP68Metadata = async (unit: string): Promise<any> => {
 
   return metadata;
 };
+export const getFiles = async (unit: string): Promise<{src: string, mediaType: string}[]> => {
+  let files = [];
+  const tokenMetadata = await getMetadata(unit);
+  for (let c=0; c<tokenMetadata?.files.length; c++) { 
+    
+    const tfile = await getFile(unit, c, tokenMetadata);
+    const blob = new Blob([tfile.buffer], { type : tfile.mediaType }); 
+      
+    const fileSrc = getDataURLFromBlob(blob);
+    const tobj = {...tokenMetadata?.files[c]};
+    tobj.src=fileSrc;
+    tobj.mediaType=blob.type;
+    files.push(tobj);
+  }
+  return files;
+}
+export const getDataURLFromBlob=async(blob: Blob)=> { 
+  const ab = await blob.arrayBuffer();
+  const ia = new Uint8Array(ab);
+  const tresult = new TextDecoder().decode(ia);
+  const mType = blob.type.split(';')[0];
+  const fileSrc = 'data:' + mType + ',' + encodeURIComponent(tresult);
+  return fileSrc;
+}
+export const getFilesFromArray = async (unit: string, files: ({src?:string, mediaType?: string}|string)[]): Promise<any> => { 
+  
+  const result=[];
+  for (const file of files) { 
+    if (file==='own') { 
+      result.push(...await getFiles(unit));
+    } else if (typeof file==='string') { 
+      result.push(...await getFiles(file));
+    } else if (file?.src)  { 
+      const tfile:{src?: string, mediaType?: string}={...file};
+      //const file = {}
+      
+      let sresult:{mediaType: any, buffer: any}=await getFileFromSrc(tfile?.src ||'', tfile?.mediaType||'');
+      const blob = new Blob([sresult.buffer], { type : sresult.mediaType }); 
+      tfile.src=await getDataURLFromBlob(blob);
+      result.push(tfile)
+    }
+
+  }
+}
+export const getFileFromSrc = async(src: string, mediaType: string): Promise<{buffer:any,mediaType:string}> => { 
+  let result:{mediaType: string, buffer: any}={mediaType, buffer:''};
+  if (src.substring(0,5)=='cnft:') { 
+    // Here we actually recurse 
+    let rresult = await getFile(src.substring(5,61),src.substring(62))
+    result.buffer=rresult.buffer;
+    result.mediaType=rresult.mediaType;
+  } else if (src.substring(0,7)=='ipfs://') {
+    result.buffer = (await axios.get(IPFS_GATEWAY+src.substring(7))).data;
+    
+  } else if (src.substring(0,5)=='ar://') { 
+    result.buffer = (await axios.get(ARWEAVE_GATEWAY+src.substring(10))).data;
+  
+  } else if (src.substring(0,5)=='data:') { 
+    let el = src.split(',',2);
+    let lbuffer = null;
+    if (el[0].includes('base64')) { 
+      lbuffer=Buffer.from(el[1], 'base64').toString();
+    } else { 
+      lbuffer=decodeURIComponent(el[1]);
+    }
+    // Something not quite right with this bit
+    result.buffer=lbuffer;
+    
+  } else if (src.substring(0,8)=='https://') { 
+    result.buffer = (await axios.get(src.substring(8))).data;
+  } else if (src.substring(0,7)=='http://') { 
+    result.buffer = (await axios.get(src.substring(7))).data;
+  }
+  return result;
+}
+export const getFile = async (unit: string, id: string | number, metadata:any | null=null): Promise<{buffer:any,mediaType:string}> =>  {
+  let file = null;
+  
+  if (unit=='own'&&metadata) { 
+    try { 
+      file=metadata.files.filter((f:any)=>f.id==id)[0];
+    } catch (e) {  }
+    if ((typeof id == "number" || !isNaN(parseInt(id))) && !file) { 
+      try { 
+        file=metadata.files[id];
+      } catch (e) { }
+    }
+  } else {
+    const tokenMetadata = await getMetadata(unit);
+
+    try { 
+      file=tokenMetadata?.files.filter((f:any)=>f.id==id)[0];
+    } catch (e) { }
+    if ((typeof id == "number" || !isNaN(parseInt(id))) && !file) { 
+      try { 
+      file=tokenMetadata?.files[id];
+      } catch (e) { }
+    }
+  }
+  if (!file) { 
+    throw new Error('File Not Found');
+  }
+  let src = file.src;
+  if (Array.isArray(src)) { 
+    src=src.join('');
+  }
+  
+  let result:{mediaType: any, buffer: any}=await getFileFromSrc(src, file?.mediaType);
+  
+  return result;
+}
 
 export const getSmartImports = async (
   featureTree: {
@@ -473,7 +589,7 @@ export const getSmartImports = async (
     utxos: string[] | string;
     transactions: string[] | string;
     mintTx?: boolean;
-    files?: boolean;
+    files?: boolean | ({src?:string, mediaType?: string}|string)[];
   },
   walletAddr: string,
   tokenUnit: string,
@@ -508,7 +624,12 @@ export const getSmartImports = async (
     ret.mintTx = await getMintTx(tokenUnit);
   }
   if (featureTree?.files) {
-    ret.files = true;
+    if (typeof featureTree?.files == "boolean") { 
+      ret.files = featureTree?.files;
+    } else {
+      ret.files = await getFilesFromArray(tokenUnit, featureTree?.files);
+    }
+    
   }
   return ret;
 };
