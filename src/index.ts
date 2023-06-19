@@ -1,7 +1,7 @@
 import pgCon from 'pg';
 import axios from 'axios';
 
-const fileReader = new FileReader();
+
 import * as CSL from '@emurgo/cardano-serialization-lib-nodejs';
 let _networkId: number | null = null;
 let _pgClient: pgCon.Client | null = null;
