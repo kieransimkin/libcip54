@@ -496,7 +496,6 @@ export const getFiles = async (unit: string, metadata?: any): Promise<{ src: str
   return files;
 };
 export const getURLEncodedDataURLFromBlob = async (blob: Blob) => {
-  
   const ab = await blob.arrayBuffer();
   const ia = new Uint8Array(ab);
   const tresult = new TextDecoder().decode(ia);
@@ -507,7 +506,7 @@ export const getURLEncodedDataURLFromBlob = async (blob: Blob) => {
 function getDataURLFromBlob(blob: Blob): Promise<string> {
   return new Promise((resolve, _) => {
     const reader = new FileReader();
-    reader.onloadend = () => resolve(typeof reader.result === 'string'?reader.result:'');
+    reader.onloadend = () => resolve(typeof reader.result === 'string' ? reader.result : '');
     reader.readAsDataURL(blob);
   });
 }
