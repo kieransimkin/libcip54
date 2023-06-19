@@ -561,7 +561,7 @@ export const getFile = async (unit: string, id: string | number, metadata:any | 
     const tokenMetadata = await getMetadata(unit);
 
     try { 
-      file=tokenMetadata?.files.filter((f:any)=>f.id==id)[0];
+      file=tokenMetadata?.files.filter((f:any)=>f.id===id)[0];
     } catch (e) { }
     if ((typeof id === "number" || !isNaN(parseInt(id,undefined))) && !file) { 
       try { 
@@ -577,7 +577,7 @@ export const getFile = async (unit: string, id: string | number, metadata:any | 
     src=src.join('');
   }
   
-  let result:{mediaType: any, buffer: any}=await getFileFromSrc(src, file?.mediaType);
+  const result:{mediaType: any, buffer: any}=await getFileFromSrc(src, file?.mediaType);
   
   return result;
 }
@@ -624,7 +624,7 @@ export const getSmartImports = async (
     ret.mintTx = await getMintTx(tokenUnit);
   }
   if (featureTree?.files) {
-    if (typeof featureTree?.files == "boolean") { 
+    if (typeof featureTree?.files === "boolean") { 
       ret.files = featureTree?.files;
     } else {
       ret.files = await getFilesFromArray(tokenUnit, featureTree?.files);
