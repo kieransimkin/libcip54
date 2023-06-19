@@ -525,21 +525,23 @@ export const getFilesFromArray = async (
         const tfile: { src?: string; mediaType?: string; id?: string | number } = { ...file };
         // const file = {}
 
-        const sresult: { mediaType: any; buffer: any; unit?: string; id?: string | number; props?: any } =
-          await getFileFromSrc(tfile?.src || '', tfile?.mediaType || '');
+        const sresult: { mediaType: any; buffer: any; unit?: string; id?: string | number, props?:any } = await getFileFromSrc(
+          tfile?.src || '',
+          tfile?.mediaType || '',
+        );
         const blob = new Blob([sresult.buffer], { type: sresult.mediaType });
         tfile.src = await getDataURLFromBlob(blob);
         if (!result[unit]) result[unit] = [];
         if (sresult.unit) {
           if (!result[sresult.unit]) result[sresult.unit] = [];
-          const ntfile: any = { ...tfile };
+          const ntfile:any = { ...tfile };
           ntfile.id = sresult.id;
           if (sresult.props) {
-            for (const prop of Object.keys(sresult.props)) {
-              ntfile[prop] = sresult.props[prop];
+            for (const prop of Object.keys(sresult.props)) { 
+              ntfile[prop]=sresult.props[prop];
             }
           }
-          ntfile.src = tfile.src;
+          ntfile.src=tfile.src;
           result[sresult.unit].push(ntfile);
         }
         result[unit].push(tfile);
@@ -552,14 +554,8 @@ export const getFilesFromArray = async (
   }
   return result;
 };
-export const getFileFromSrc = async (
-  src: string,
-  mediaType: string,
-): Promise<{ buffer: any; mediaType: string; id?: string | number; unit?: string; props?: any }> => {
-  const result: { mediaType: string; buffer: any; unit?: string; id?: string | number; props?: any } = {
-    mediaType,
-    buffer: '',
-  };
+export const getFileFromSrc = async (src: string, mediaType: string): Promise<{ buffer: any; mediaType: string, id?: string|number, unit?: string, props?: any }> => {
+  const result: { mediaType: string; buffer: any; unit?: string; id?: string | number, props?: any } = { mediaType, buffer: '' };
   if (src.substring(0, 5) === 'cnft:') {
     // Here we actually recurse
     const rresult = await getFile(src.substring(5).split('/', 2)[0], src.substring(5).split('/', 2)[1]);
@@ -594,17 +590,19 @@ export const getFile = async (
   unit: string,
   id: string | number,
   metadata: any | null = null,
-): Promise<{ buffer: any; mediaType: string; props?: any }> => {
+): Promise<{ buffer: any; mediaType: string, props?: any }> => {
   ensureInit();
   let file = null;
 
   if (unit === 'own' && metadata) {
     try {
       file = metadata.files.filter((f: any) => f.id === id)[0];
+      if (!file) file = metadata?.uses?.files.filter((f: any) => f.id === id)[0];
     } catch (e) {}
     if ((typeof id === 'number' || !isNaN(parseInt(id, undefined))) && !file) {
       try {
-        file = metadata.files[id];
+        file = metadata.files[parseInt(String(id), undefined)];
+        if (!file) file = metadata.uses?.files[parseInt(String(id), undefined)];
       } catch (e) {}
     }
   } else {
@@ -612,10 +610,12 @@ export const getFile = async (
 
     try {
       file = tokenMetadata?.files.filter((f: any) => f.id === id)[0];
+      if (!file) file = tokenMetadata?.uses?.files.filter((f: any) => f.id === id)[0];
     } catch (e) {}
     if ((typeof id === 'number' || !isNaN(parseInt(id, undefined))) && !file) {
       try {
-        file = tokenMetadata?.files[id];
+        file = tokenMetadata?.files[parseInt(String(id), undefined)];
+        if (!file) file = tokenMetadata?.uses?.files[parseInt(String(id), undefined)];
       } catch (e) {}
     }
   }
@@ -627,8 +627,8 @@ export const getFile = async (
     src = src.join('');
   }
 
-  const result: { mediaType: any; buffer: any; props?: any } = await getFileFromSrc(src, file?.mediaType);
-  result.props = { ...file };
+  const result: { mediaType: any; buffer: any, props?: any } = await getFileFromSrc(src, file?.mediaType);
+  result.props = {...file};
 
   return result;
 };
