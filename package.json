@@ -1,6 +1,6 @@
 {
   "name": "libcip54",
-  "version": "1.0.38",
+  "version": "1.0.39",
   "description": "Cardano Smart NFT Library",
   "main": "lib/src/index.js",
   "types": "lib/src/index.d.ts",

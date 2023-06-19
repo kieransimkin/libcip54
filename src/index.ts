@@ -508,7 +508,7 @@ export const getDataURLFromBlob = async (blob: Blob): Promise<string> => {
   const arrayBuf = await blob.arrayBuffer();
   const mType = blob.type.split(';')[0];
   return 'data:' + mType + ';base64,' + Buffer.from(arrayBuf).toString('base64');
-}
+};
 export const getFilesFromArray = async (
   unit: string,
   files: ({ src?: string; mediaType?: string } | string)[],
