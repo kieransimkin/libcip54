@@ -643,8 +643,8 @@ export const getSmartImports = async (
     if (typeof featureTree?.files === 'boolean') {
       ret.files = featureTree?.files;
     } else {
-      if (typeof featureTree?.files === "string") { 
-        featureTree.files=[featureTree?.files];
+      if (typeof featureTree?.files === 'string') {
+        featureTree.files = [featureTree?.files];
       }
       ret.files = await getFilesFromArray(tokenUnit, featureTree?.files);
     }
