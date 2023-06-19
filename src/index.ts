@@ -522,7 +522,7 @@ export const getFilesFromArray = async (
       }
     } catch (e) {
       if (!result.error) result.error = [];
-      result.error.push('Error getting files:('+unit+' '+file+"): "+e);
+      result.error.push('Error getting files:(' + unit + ' ' + file + '): ' + e);
     }
   }
   return result;
