@@ -502,13 +502,13 @@ export const getDataURLFromBlob = async (blob: Blob) => {
 export const getFilesFromArray = async (
   unit: string,
   files: ({ src?: string; mediaType?: string } | string)[],
-  metadata: any
+  metadata: any,
 ): Promise<any> => {
   const result: any = {};
   for (const file of files) {
     try {
       if (file === 'own') {
-        result[unit] = await getFiles('own',metadata);
+        result[unit] = await getFiles('own', metadata);
       } else if (typeof file === 'string') {
         result[file] = await getFiles(file);
       } else if (file?.src) {
