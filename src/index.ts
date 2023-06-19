@@ -548,7 +548,7 @@ export const getFileFromSrc = async (src: string, mediaType: string): Promise<{ 
     const el = src.split(',', 2);
     let lbuffer = null;
     if (el[0].includes('base64')) {
-      lbuffer = Buffer.from(el[1], 'base64').toString();
+      lbuffer = Buffer.from(el[1], 'base64');
     } else {
       lbuffer = decodeURIComponent(el[1]);
     }
