@@ -1,5 +1,8 @@
 import pgCon from 'pg';
 import axios from 'axios';
+var FileReader = require('filereader')
+  , fileReader = new FileReader()
+  ;
 import * as CSL from '@emurgo/cardano-serialization-lib-nodejs';
 let _networkId: number | null = null;
 let _pgClient: pgCon.Client | null = null;
@@ -505,9 +508,8 @@ export const getURLEncodedDataURLFromBlob = async (blob: Blob) => {
 };
 function getDataURLFromBlob(blob: Blob): Promise<string> {
   return new Promise((resolve, _) => {
-    const reader = new FileReader();
-    reader.onloadend = () => resolve(typeof reader.result === 'string' ? reader.result : '');
-    reader.readAsDataURL(blob);
+    fileReader.onloadend = () => resolve(typeof fileReader.result === 'string' ? fileReader.result : '');
+    fileReader.readAsDataURL(blob);
   });
 }
 export const getFilesFromArray = async (
