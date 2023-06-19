@@ -525,7 +525,7 @@ export const getFilesFromArray = async (
         const tfile: { src?: string; mediaType?: string; id?: string | number } = { ...file };
         // const file = {}
 
-        const sresult: { mediaType: any; buffer: any; unit?: string; id?: string | number } = await getFileFromSrc(
+        const sresult: { mediaType: any; buffer: any; unit?: string; id?: string | number, props?:any } = await getFileFromSrc(
           tfile?.src || '',
           tfile?.mediaType || '',
         );
@@ -534,8 +534,14 @@ export const getFilesFromArray = async (
         if (!result[unit]) result[unit] = [];
         if (sresult.unit) {
           if (!result[sresult.unit]) result[sresult.unit] = [];
-          const ntfile = { ...tfile };
+          const ntfile:any = { ...tfile };
           ntfile.id = sresult.id;
+          if (sresult.props) {
+            for (const prop in sresult.props) { 
+              ntfile[prop]=sresult.props[prop];
+            }
+          }
+          ntfile.src=tfile.src;
           result[sresult.unit].push(ntfile);
         }
         result[unit].push(tfile);
@@ -548,14 +554,15 @@ export const getFilesFromArray = async (
   }
   return result;
 };
-export const getFileFromSrc = async (src: string, mediaType: string): Promise<{ buffer: any; mediaType: string }> => {
-  const result: { mediaType: string; buffer: any; unit?: string; id?: string | number } = { mediaType, buffer: '' };
+export const getFileFromSrc = async (src: string, mediaType: string): Promise<{ buffer: any; mediaType: string, id?: string|number, unit?: string, props?: any }> => {
+  const result: { mediaType: string; buffer: any; unit?: string; id?: string | number, props?: any } = { mediaType, buffer: '' };
   if (src.substring(0, 5) === 'cnft:') {
     // Here we actually recurse
     const rresult = await getFile(src.substring(5).split('/', 2)[0], src.substring(5).split('/', 2)[1]);
     result.unit = src.substring(5).split('/', 2)[0];
     result.id = src.substring(5).split('/', 2)[1];
     result.buffer = rresult.buffer;
+    result.props = rresult.props;
     result.mediaType = rresult.mediaType;
   } else if (src.substring(0, 7) === 'ipfs://') {
     result.buffer = (await axios.get(IPFS_GATEWAY + src.substring(7))).data;
@@ -583,7 +590,7 @@ export const getFile = async (
   unit: string,
   id: string | number,
   metadata: any | null = null,
-): Promise<{ buffer: any; mediaType: string }> => {
+): Promise<{ buffer: any; mediaType: string, props?: any }> => {
   ensureInit();
   let file = null;
 
@@ -616,7 +623,8 @@ export const getFile = async (
     src = src.join('');
   }
 
-  const result: { mediaType: any; buffer: any } = await getFileFromSrc(src, file?.mediaType);
+  const result: { mediaType: any; buffer: any, props?: any } = await getFileFromSrc(src, file?.mediaType);
+  result.props = {...file};
 
   return result;
 };
