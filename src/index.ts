@@ -471,7 +471,7 @@ export const getCIP68Metadata = async (unit: string): Promise<any> => {
   return metadata;
 };
 export const getFiles = async (unit: string): Promise<{src: string, mediaType: string}[]> => {
-  let files = [];
+  const files = [];
   const tokenMetadata = await getMetadata(unit);
   for (let c=0; c<tokenMetadata?.files.length; c++) { 
     
@@ -504,9 +504,9 @@ export const getFilesFromArray = async (unit: string, files: ({src?:string, medi
       result.push(...await getFiles(file));
     } else if (file?.src)  { 
       const tfile:{src?: string, mediaType?: string}={...file};
-      //const file = {}
+      // const file = {}
       
-      let sresult:{mediaType: any, buffer: any}=await getFileFromSrc(tfile?.src ||'', tfile?.mediaType||'');
+      const sresult:{mediaType: any, buffer: any}=await getFileFromSrc(tfile?.src ||'', tfile?.mediaType||'');
       const blob = new Blob([sresult.buffer], { type : sresult.mediaType }); 
       tfile.src=await getDataURLFromBlob(blob);
       result.push(tfile)
@@ -515,19 +515,19 @@ export const getFilesFromArray = async (unit: string, files: ({src?:string, medi
   }
 }
 export const getFileFromSrc = async(src: string, mediaType: string): Promise<{buffer:any,mediaType:string}> => { 
-  let result:{mediaType: string, buffer: any}={mediaType, buffer:''};
-  if (src.substring(0,5)=='cnft:') { 
+  const result:{mediaType: string, buffer: any}={mediaType, buffer:''};
+  if (src.substring(0,5)==='cnft:') { 
     // Here we actually recurse 
     let rresult = await getFile(src.substring(5,61),src.substring(62))
     result.buffer=rresult.buffer;
     result.mediaType=rresult.mediaType;
-  } else if (src.substring(0,7)=='ipfs://') {
+  } else if (src.substring(0,7)==='ipfs://') {
     result.buffer = (await axios.get(IPFS_GATEWAY+src.substring(7))).data;
     
   } else if (src.substring(0,5)=='ar://') { 
     result.buffer = (await axios.get(ARWEAVE_GATEWAY+src.substring(10))).data;
   
-  } else if (src.substring(0,5)=='data:') { 
+  } else if (src.substring(0,5)==='data:') { 
     let el = src.split(',',2);
     let lbuffer = null;
     if (el[0].includes('base64')) { 
@@ -538,9 +538,9 @@ export const getFileFromSrc = async(src: string, mediaType: string): Promise<{bu
     // Something not quite right with this bit
     result.buffer=lbuffer;
     
-  } else if (src.substring(0,8)=='https://') { 
+  } else if (src.substring(0,8)==='https://') { 
     result.buffer = (await axios.get(src.substring(8))).data;
-  } else if (src.substring(0,7)=='http://') { 
+  } else if (src.substring(0,7)==='http://') { 
     result.buffer = (await axios.get(src.substring(7))).data;
   }
   return result;
@@ -552,7 +552,7 @@ export const getFile = async (unit: string, id: string | number, metadata:any | 
     try { 
       file=metadata.files.filter((f:any)=>f.id==id)[0];
     } catch (e) {  }
-    if ((typeof id == "number" || !isNaN(parseInt(id))) && !file) { 
+    if ((typeof id === "number" || !isNaN(parseInt(id))) && !file) { 
       try { 
         file=metadata.files[id];
       } catch (e) { }
@@ -563,7 +563,7 @@ export const getFile = async (unit: string, id: string | number, metadata:any | 
     try { 
       file=tokenMetadata?.files.filter((f:any)=>f.id==id)[0];
     } catch (e) { }
-    if ((typeof id == "number" || !isNaN(parseInt(id))) && !file) { 
+    if ((typeof id === "number" || !isNaN(parseInt(id))) && !file) { 
       try { 
       file=tokenMetadata?.files[id];
       } catch (e) { }
