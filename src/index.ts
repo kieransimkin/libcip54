@@ -631,7 +631,10 @@ export const getFile = async (
     src = src.join('');
   }
 
-  const result: { mediaType: any; buffer: any; props?: any, unit?: any, id?: any } = await getFileFromSrc(src, file?.mediaType);
+  const result: { mediaType: any; buffer: any; props?: any; unit?: any; id?: any } = await getFileFromSrc(
+    src,
+    file?.mediaType,
+  );
   result.props = { ...file };
 
   return result;
