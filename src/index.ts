@@ -487,7 +487,7 @@ export const getFiles = async (unit: string, metadata?: any): Promise<{ src: str
     const tfile = await getFile(unit, c, tokenMetadata);
     const blob = new Blob([tfile.buffer], { type: tfile.mediaType });
 
-    const fileSrc = getDataURLFromBlob(blob);
+    const fileSrc = await getDataURLFromBlob(blob);
     const tobj = { ...tokenMetadata?.files[c] };
     tobj.src = fileSrc;
     tobj.mediaType = blob.type;
