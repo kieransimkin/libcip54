@@ -525,10 +525,14 @@ export const getFilesFromArray = async (
         const tfile: { src?: string; mediaType?: string } = { ...file };
         // const file = {}
 
-        const sresult: { mediaType: any; buffer: any } = await getFileFromSrc(tfile?.src || '', tfile?.mediaType || '');
+        const sresult: { mediaType: any; buffer: any, unit?: string } = await getFileFromSrc(tfile?.src || '', tfile?.mediaType || '');
         const blob = new Blob([sresult.buffer], { type: sresult.mediaType });
         tfile.src = await getDataURLFromBlob(blob);
         if (!result[unit]) result[unit] = [];
+        if (sresult.unit) { 
+          if (!result[sresult.unit]) result[sresult.unit] = [];
+          result[sresult.unit].push(tfile);
+        }
         result[unit].push(tfile);
       }
     } catch (e) {
@@ -540,10 +544,11 @@ export const getFilesFromArray = async (
   return result;
 };
 export const getFileFromSrc = async (src: string, mediaType: string): Promise<{ buffer: any; mediaType: string }> => {
-  const result: { mediaType: string; buffer: any } = { mediaType, buffer: '' };
+  const result: { mediaType: string; buffer: any, unit?: string } = { mediaType, buffer: '' };
   if (src.substring(0, 5) === 'cnft:') {
     // Here we actually recurse
     const rresult = await getFile(src.substring(5).split('/', 2)[0], src.substring(5).split('/', 2)[1]);
+    result.unit = src.substring(5).split('/', 2)[0];
     result.buffer = rresult.buffer;
     result.mediaType = rresult.mediaType;
   } else if (src.substring(0, 7) === 'ipfs://') {
