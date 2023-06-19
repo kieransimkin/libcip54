@@ -1,8 +1,8 @@
 import pgCon from 'pg';
 import axios from 'axios';
-var FileReader = require('filereader')
-  , fileReader = new FileReader()
-  ;
+
+
+const fileReader = new FileReader()
 import * as CSL from '@emurgo/cardano-serialization-lib-nodejs';
 let _networkId: number | null = null;
 let _pgClient: pgCon.Client | null = null;
@@ -506,11 +506,10 @@ export const getURLEncodedDataURLFromBlob = async (blob: Blob) => {
   const fileSrc = 'data:' + mType + ',' + encodeURIComponent(tresult);
   return fileSrc;
 };
-function getDataURLFromBlob(blob: Blob): Promise<string> {
-  return new Promise((resolve, _) => {
-    fileReader.onloadend = () => resolve(typeof fileReader.result === 'string' ? fileReader.result : '');
-    fileReader.readAsDataURL(blob);
-  });
+async function getDataURLFromBlob(blob: Blob): Promise<string> {
+  const arrayBuf= await blob.arrayBuffer();
+  const mType = blob.type.split(';')[0];
+  return 'data:' + mType + ';base64,'+Buffer.from(arrayBuf).toString('base64');
 }
 export const getFilesFromArray = async (
   unit: string,
