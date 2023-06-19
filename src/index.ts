@@ -505,19 +505,23 @@ export const getFilesFromArray = async (
 ): Promise<any> => {
   const result: any = {};
   for (const file of files) {
-    if (file === 'own') {
-      result[unit] = await getFiles(unit);
-    } else if (typeof file === 'string') {
-      result[file] = await getFiles(file);
-    } else if (file?.src) {
-      const tfile: { src?: string; mediaType?: string } = { ...file };
-      // const file = {}
+    try { 
+      if (file === 'own') {
+        result[unit] = await getFiles(unit);
+      } else if (typeof file === 'string') {
+        result[file] = await getFiles(file);
+      } else if (file?.src) {
+        const tfile: { src?: string; mediaType?: string } = { ...file };
+        // const file = {}
 
-      const sresult: { mediaType: any; buffer: any } = await getFileFromSrc(tfile?.src || '', tfile?.mediaType || '');
-      const blob = new Blob([sresult.buffer], { type: sresult.mediaType });
-      tfile.src = await getDataURLFromBlob(blob);
-      if (!result[unit]) result[unit] = [];
-      result[unit].push(tfile);
+        const sresult: { mediaType: any; buffer: any } = await getFileFromSrc(tfile?.src || '', tfile?.mediaType || '');
+        const blob = new Blob([sresult.buffer], { type: sresult.mediaType });
+        tfile.src = await getDataURLFromBlob(blob);
+        if (!result[unit]) result[unit] = [];
+        result[unit].push(tfile);
+      }
+    } catch (e) { 
+      console.log('Error getting files:'+e);
     }
   }
   return result;
@@ -526,7 +530,7 @@ export const getFileFromSrc = async (src: string, mediaType: string): Promise<{ 
   const result: { mediaType: string; buffer: any } = { mediaType, buffer: '' };
   if (src.substring(0, 5) === 'cnft:') {
     // Here we actually recurse
-    const rresult = await getFile(src.substring(5, 61), src.substring(62));
+    const rresult = await getFile(src.substring(5).split('/',2)[0], src.substring(5).split('/',2)[1]);
     result.buffer = rresult.buffer;
     result.mediaType = rresult.mediaType;
   } else if (src.substring(0, 7) === 'ipfs://') {
