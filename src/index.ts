@@ -586,7 +586,7 @@ export const getFile = async (
     }
   }
   if (!file) {
-    throw new Error('File Not Found');
+    throw new Error('File Not Found: -'+unit+' '+id+"-");
   }
   let src = file.src;
   if (Array.isArray(src)) {
