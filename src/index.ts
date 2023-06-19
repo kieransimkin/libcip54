@@ -537,7 +537,7 @@ export const getFilesFromArray = async (
           const ntfile:any = { ...tfile };
           ntfile.id = sresult.id;
           if (sresult.props) {
-            for (const prop in sresult.props) { 
+            for (const prop of Object.keys(sresult.props)) { 
               ntfile[prop]=sresult.props[prop];
             }
           }
