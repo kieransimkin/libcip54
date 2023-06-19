@@ -475,7 +475,7 @@ export const getCIP68Metadata = async (unit: string): Promise<any> => {
 
   return metadata;
 };
-export const getFiles = async (unit: string): Promise<{ src: string; mediaType: string }[]> => {
+export const getFiles = async (unit: string, metadata?: any): Promise<{ src: string; mediaType: string }[]> => {
   ensureInit();
   const files = [];
   const tokenMetadata = await getMetadata(unit);
@@ -502,12 +502,13 @@ export const getDataURLFromBlob = async (blob: Blob) => {
 export const getFilesFromArray = async (
   unit: string,
   files: ({ src?: string; mediaType?: string } | string)[],
+  metadata: any
 ): Promise<any> => {
   const result: any = {};
   for (const file of files) {
     try {
       if (file === 'own') {
-        result[unit] = await getFiles(unit);
+        result[unit] = await getFiles('own',metadata);
       } else if (typeof file === 'string') {
         result[file] = await getFiles(file);
       } else if (file?.src) {
@@ -607,6 +608,7 @@ export const getSmartImports = async (
     mintTx?: boolean;
     files?: boolean | string | ({ src?: string; mediaType?: string } | string)[];
   },
+  metadata: any,
   walletAddr: string,
   tokenUnit: string,
 ) => {
@@ -646,7 +648,7 @@ export const getSmartImports = async (
       if (typeof featureTree?.files === 'string') {
         featureTree.files = [featureTree?.files];
       }
-      ret.files = await getFilesFromArray(tokenUnit, featureTree?.files);
+      ret.files = await getFilesFromArray(tokenUnit, featureTree?.files, metadata);
     }
   }
   return ret;
