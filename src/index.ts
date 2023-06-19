@@ -518,17 +518,17 @@ export const getFileFromSrc = async(src: string, mediaType: string): Promise<{bu
   const result:{mediaType: string, buffer: any}={mediaType, buffer:''};
   if (src.substring(0,5)==='cnft:') { 
     // Here we actually recurse 
-    let rresult = await getFile(src.substring(5,61),src.substring(62))
+    const rresult = await getFile(src.substring(5,61),src.substring(62))
     result.buffer=rresult.buffer;
     result.mediaType=rresult.mediaType;
   } else if (src.substring(0,7)==='ipfs://') {
     result.buffer = (await axios.get(IPFS_GATEWAY+src.substring(7))).data;
     
-  } else if (src.substring(0,5)=='ar://') { 
+  } else if (src.substring(0,5)==='ar://') { 
     result.buffer = (await axios.get(ARWEAVE_GATEWAY+src.substring(10))).data;
   
   } else if (src.substring(0,5)==='data:') { 
-    let el = src.split(',',2);
+    const el = src.split(',',2);
     let lbuffer = null;
     if (el[0].includes('base64')) { 
       lbuffer=Buffer.from(el[1], 'base64').toString();
@@ -548,11 +548,11 @@ export const getFileFromSrc = async(src: string, mediaType: string): Promise<{bu
 export const getFile = async (unit: string, id: string | number, metadata:any | null=null): Promise<{buffer:any,mediaType:string}> =>  {
   let file = null;
   
-  if (unit=='own'&&metadata) { 
+  if (unit==='own'&&metadata) { 
     try { 
-      file=metadata.files.filter((f:any)=>f.id==id)[0];
+      file=metadata.files.filter((f:any)=>f.id===id)[0];
     } catch (e) {  }
-    if ((typeof id === "number" || !isNaN(parseInt(id))) && !file) { 
+    if ((typeof id === "number" || !isNaN(parseInt(id,undefined))) && !file) { 
       try { 
         file=metadata.files[id];
       } catch (e) { }
@@ -563,7 +563,7 @@ export const getFile = async (unit: string, id: string | number, metadata:any | 
     try { 
       file=tokenMetadata?.files.filter((f:any)=>f.id==id)[0];
     } catch (e) { }
-    if ((typeof id === "number" || !isNaN(parseInt(id))) && !file) { 
+    if ((typeof id === "number" || !isNaN(parseInt(id,undefined))) && !file) { 
       try { 
       file=tokenMetadata?.files[id];
       } catch (e) { }
