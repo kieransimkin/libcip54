@@ -505,7 +505,7 @@ export const getFilesFromArray = async (
 ): Promise<any> => {
   const result: any = {};
   for (const file of files) {
-    try { 
+    try {
       if (file === 'own') {
         result[unit] = await getFiles(unit);
       } else if (typeof file === 'string') {
@@ -520,9 +520,9 @@ export const getFilesFromArray = async (
         if (!result[unit]) result[unit] = [];
         result[unit].push(tfile);
       }
-    } catch (e) { 
-      if (!result.error) result.error=[];
-      result.error.push('Error getting files:'+e);
+    } catch (e) {
+      if (!result.error) result.error = [];
+      result.error.push('Error getting files:' + e);
     }
   }
   return result;
@@ -531,7 +531,7 @@ export const getFileFromSrc = async (src: string, mediaType: string): Promise<{ 
   const result: { mediaType: string; buffer: any } = { mediaType, buffer: '' };
   if (src.substring(0, 5) === 'cnft:') {
     // Here we actually recurse
-    const rresult = await getFile(src.substring(5).split('/',2)[0], src.substring(5).split('/',2)[1]);
+    const rresult = await getFile(src.substring(5).split('/', 2)[0], src.substring(5).split('/', 2)[1]);
     result.buffer = rresult.buffer;
     result.mediaType = rresult.mediaType;
   } else if (src.substring(0, 7) === 'ipfs://') {
