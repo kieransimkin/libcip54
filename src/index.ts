@@ -476,13 +476,16 @@ export const getCIP68Metadata = async (unit: string): Promise<any> => {
 
   return metadata;
 };
-export const getFiles = async (unit: string, metadata?: any): Promise<{ src: string; mediaType: string }[]> => {
+export const getFiles = async (unit: string, metadata?: any, actualUnit?: string): Promise<{ src: string; mediaType: string }[]> => {
   ensureInit();
   const files = [];
   let tokenMetadata = metadata;
+  
   if (unit !== 'own') {
     tokenMetadata = await getMetadata(unit);
+    actualUnit=unit;
   }
+  
   for (let c = 0; c < tokenMetadata?.files.length; c++) {
     const tfile: {
       src?: string;
@@ -507,7 +510,7 @@ export const getFiles = async (unit: string, metadata?: any): Promise<{ src: str
     tobj.props = { ...tokenMetadata?.files[c] };
     delete tobj.props.src;
     delete tobj.props.mediaType;
-    tobj.unit = unit;
+    tobj.unit = actualUnit;
     if (sresult.props) Object.assign(tobj.props, sresult.props);
     if (sresult.unit && sresult.unit !== unit) {
       const ntfile: any = { ...tobj };
@@ -517,7 +520,7 @@ export const getFiles = async (unit: string, metadata?: any): Promise<{ src: str
       ntfile.origSrc = tfile.origSrc;
       ntfile.targetSrc = sresult.src;
       ntfile.unit = sresult.unit;
-      ntfile.origUnit = unit;
+      ntfile.origUnit = actualUnit;
       ntfile.mediaType = sresult.mediaType;
       ntfile.origMediaType = tfile.mediaType;
       files.push(ntfile);
@@ -548,7 +551,7 @@ export const getFilesFromArray = async (
   for (const file of files) {
     try {
       if (file === 'own') {
-        result[unit] = await getFiles('own', metadata);
+        result[unit] = await getFiles('own', metadata, unit);
       } else if (typeof file === 'string') {
         result[file] = await getFiles(file);
       } else if (file?.src) {
