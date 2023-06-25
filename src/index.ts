@@ -509,12 +509,10 @@ export const getFiles = async (unit: string, metadata?: any): Promise<{ src: str
     tobj.props = { ...tokenMetadata?.files[c] };
     tobj.unit = unit;
     if (sresult.props) Object.assign(tobj.props, sresult.props);
-
     if (sresult.unit && sresult.unit !== unit) {
       const ntfile: any = { ...tobj };
       ntfile.origId = tobj?.id;
       ntfile.id = sresult?.id;
-      ntfile.props = sresult?.props;
       ntfile.src = tfile.src;
       ntfile.origSrc = tfile.origSrc;
       ntfile.targetSrc = sresult.src;
@@ -561,7 +559,7 @@ export const getFilesFromArray = async (
           origSrc?: string;
           targetSrc?: string;
           unit?: string;
-          props?: {};
+          props?: any;
         } = { src: file.src, mediaType: file.mediaType, id: file.id };
         // const file = {}
 
@@ -570,6 +568,7 @@ export const getFilesFromArray = async (
         const blob = new Blob([sresult.buffer], { type: sresult.mediaType });
         tfile.origSrc = tfile.src;
         tfile.props = { ...file };
+        delete tfile.props?.src;
         tfile.unit = unit;
         if (sresult.props) Object.assign(tfile.props, sresult.props);
         tfile.src = await getDataURLFromBlob(blob);
@@ -579,7 +578,9 @@ export const getFilesFromArray = async (
           const ntfile: any = { ...tfile };
           ntfile.origId = tfile?.id;
           ntfile.id = sresult?.id;
-          ntfile.props = sresult?.props;
+          ntfile.props = {...tfile.props}
+          if (sresult?.props) Object.assign(ntfile.props, sresult.props);
+          delete ntfile.props?.src;
           ntfile.src = tfile.src;
           ntfile.origSrc = tfile.origSrc;
           ntfile.targetSrc = sresult.src;
@@ -686,6 +687,8 @@ export const getFile = async (
   const origProps = result.props;
   result.props = { ...file };
   if (origProps) Object.assign(result.props, origProps);
+  delete result?.props?.buffer;
+  delete result?.props?.src;
   if (!result.unit) result.unit = unit;
   if (!result.id) result.id = id;
   return result;
