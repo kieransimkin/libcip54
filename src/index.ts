@@ -578,7 +578,7 @@ export const getFilesFromArray = async (
           const ntfile: any = { ...tfile };
           ntfile.origId = tfile?.id;
           ntfile.id = sresult?.id;
-          ntfile.props = {...tfile.props}
+          ntfile.props = { ...tfile.props };
           if (sresult?.props) Object.assign(ntfile.props, sresult.props);
           delete ntfile.props?.src;
           ntfile.src = tfile.src;
