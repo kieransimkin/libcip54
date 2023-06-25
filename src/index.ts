@@ -485,24 +485,34 @@ export const getFiles = async (unit: string, metadata?: any): Promise<{ src: str
   }
 
   for (let c = 0; c < tokenMetadata?.files.length; c++) {
-
-
-    const tfile: { src?: string; mediaType?: string; id?: string | number, origSrc?: string, targetSrc?: string, unit?: string, props?: {}} = { src: tokenMetadata?.files[c].src, mediaType: tokenMetadata?.files[c].mediaType, id: tokenMetadata?.files[c]?.id };
+    const tfile: {
+      src?: string;
+      mediaType?: string;
+      id?: string | number;
+      origSrc?: string;
+      targetSrc?: string;
+      unit?: string;
+      props?: {};
+    } = {
+      src: tokenMetadata?.files[c].src,
+      mediaType: tokenMetadata?.files[c].mediaType,
+      id: tokenMetadata?.files[c]?.id,
+    };
     const sresult = await getFile(unit, c, tokenMetadata);
     const blob = new Blob([sresult.buffer], { type: sresult.mediaType });
 
     const fileSrc = await getDataURLFromBlob(blob);
-    const tobj:any = { ...tfile };
+    const tobj: any = { ...tfile };
     tobj.origSrc = tobj.src;
     tobj.src = fileSrc;
     tobj.mediaType = blob.type;
-    tobj.props={...tokenMetadata?.files[c]};
+    tobj.props = { ...tokenMetadata?.files[c] };
     tobj.unit = unit;
     if (sresult.props) Object.assign(tobj.props, sresult.props);
-    
+
     if (sresult.unit && sresult.unit !== unit) {
       const ntfile: any = { ...tobj };
-      ntfile.origId = tobj?.id
+      ntfile.origId = tobj?.id;
       ntfile.id = sresult?.id;
       ntfile.props = sresult?.props;
       ntfile.src = tfile.src;
@@ -533,7 +543,7 @@ export const getDataURLFromBlob = async (blob: Blob): Promise<string> => {
 };
 export const getFilesFromArray = async (
   unit: string,
-  files: ({ src?: string; mediaType?: string, id?: string | number } | string)[],
+  files: ({ src?: string; mediaType?: string; id?: string | number } | string)[],
   metadata: any,
 ): Promise<any> => {
   const result: any = {};
@@ -544,14 +554,22 @@ export const getFilesFromArray = async (
       } else if (typeof file === 'string') {
         result[file] = await getFiles(file);
       } else if (file?.src) {
-        const tfile: { src?: string; mediaType?: string; id?: string | number, origSrc?: string, targetSrc?: string, unit?: string, props?: {}} = { src: file.src, mediaType: file.mediaType, id: file.id };
+        const tfile: {
+          src?: string;
+          mediaType?: string;
+          id?: string | number;
+          origSrc?: string;
+          targetSrc?: string;
+          unit?: string;
+          props?: {};
+        } = { src: file.src, mediaType: file.mediaType, id: file.id };
         // const file = {}
 
-        const sresult: { mediaType: any; buffer: any; unit?: string; id?: string | number; props?: any, src?: string } =
+        const sresult: { mediaType: any; buffer: any; unit?: string; id?: string | number; props?: any; src?: string } =
           await getFileFromSrc(tfile?.src || '', tfile?.mediaType || '');
         const blob = new Blob([sresult.buffer], { type: sresult.mediaType });
         tfile.origSrc = tfile.src;
-        tfile.props = {...file};
+        tfile.props = { ...file };
         tfile.unit = unit;
         if (sresult.props) Object.assign(tfile.props, sresult.props);
         tfile.src = await getDataURLFromBlob(blob);
@@ -559,7 +577,7 @@ export const getFilesFromArray = async (
         if (sresult.unit && sresult.unit !== unit) {
           if (!result[sresult.unit]) result[sresult.unit] = [];
           const ntfile: any = { ...tfile };
-          ntfile.origId = tfile?.id
+          ntfile.origId = tfile?.id;
           ntfile.id = sresult?.id;
           ntfile.props = sresult?.props;
           ntfile.src = tfile.src;
@@ -623,7 +641,7 @@ export const getFile = async (
   unit: string,
   id: string | number,
   metadata: any | null = null,
-): Promise<{ buffer: any; mediaType: string; props?: any, unit?: string; id?: string, src?: string }> => {
+): Promise<{ buffer: any; mediaType: string; props?: any; unit?: string; id?: string; src?: string }> => {
   ensureInit();
   let file = null;
 
@@ -664,12 +682,12 @@ export const getFile = async (
     src,
     file?.mediaType,
   );
-  result.src=src
+  result.src = src;
   const origProps = result.props;
   result.props = { ...file };
   if (origProps) Object.assign(result.props, origProps);
-  if (!result.unit) result.unit=unit;
-  if (!result.id) result.id=id;
+  if (!result.unit) result.unit = unit;
+  if (!result.id) result.id = id;
   return result;
 };
 
