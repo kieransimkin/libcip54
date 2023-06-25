@@ -483,7 +483,6 @@ export const getFiles = async (unit: string, metadata?: any): Promise<{ src: str
   if (unit !== 'own') {
     tokenMetadata = await getMetadata(unit);
   }
-
   for (let c = 0; c < tokenMetadata?.files.length; c++) {
     const tfile: {
       src?: string;
@@ -500,13 +499,14 @@ export const getFiles = async (unit: string, metadata?: any): Promise<{ src: str
     };
     const sresult = await getFile(unit, c, tokenMetadata);
     const blob = new Blob([sresult.buffer], { type: sresult.mediaType });
-
     const fileSrc = await getDataURLFromBlob(blob);
     const tobj: any = { ...tfile };
     tobj.origSrc = tobj.src;
     tobj.src = fileSrc;
     tobj.mediaType = blob.type;
     tobj.props = { ...tokenMetadata?.files[c] };
+    delete tobj.props.src;
+    delete tobj.props.mediaType;
     tobj.unit = unit;
     if (sresult.props) Object.assign(tobj.props, sresult.props);
     if (sresult.unit && sresult.unit !== unit) {
@@ -568,9 +568,10 @@ export const getFilesFromArray = async (
         const blob = new Blob([sresult.buffer], { type: sresult.mediaType });
         tfile.origSrc = tfile.src;
         tfile.props = { ...file };
-        delete tfile.props?.src;
         tfile.unit = unit;
         if (sresult.props) Object.assign(tfile.props, sresult.props);
+        delete tfile.props?.src;
+        delete tfile.props?.mediaType;
         tfile.src = await getDataURLFromBlob(blob);
         if (!result[unit]) result[unit] = [];
         if (sresult.unit && sresult.unit !== unit) {
@@ -581,6 +582,7 @@ export const getFilesFromArray = async (
           ntfile.props = { ...tfile.props };
           if (sresult?.props) Object.assign(ntfile.props, sresult.props);
           delete ntfile.props?.src;
+          delete ntfile.props?.mediaType;
           ntfile.src = tfile.src;
           ntfile.origSrc = tfile.origSrc;
           ntfile.targetSrc = sresult.src;
@@ -689,6 +691,7 @@ export const getFile = async (
   if (origProps) Object.assign(result.props, origProps);
   delete result?.props?.buffer;
   delete result?.props?.src;
+  delete result?.props?.mediaType;
   if (!result.unit) result.unit = unit;
   if (!result.id) result.id = id;
   return result;
