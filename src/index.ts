@@ -500,7 +500,7 @@ export const getFiles = async (unit: string, metadata?: any): Promise<{ src: str
     tobj.unit = unit;
     if (sresult.props) Object.assign(tobj.props, sresult.props);
     
-    if (sresult.unit && sresult.unit != unit) {
+    if (sresult.unit && sresult.unit !== unit) {
       const ntfile: any = { ...tobj };
       ntfile.origId = tobj?.id
       ntfile.id = sresult?.id;
@@ -556,7 +556,7 @@ export const getFilesFromArray = async (
         if (sresult.props) Object.assign(tfile.props, sresult.props);
         tfile.src = await getDataURLFromBlob(blob);
         if (!result[unit]) result[unit] = [];
-        if (sresult.unit && sresult.unit != unit) {
+        if (sresult.unit && sresult.unit !== unit) {
           if (!result[sresult.unit]) result[sresult.unit] = [];
           const ntfile: any = { ...tfile };
           ntfile.origId = tfile?.id
