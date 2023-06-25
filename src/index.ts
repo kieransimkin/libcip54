@@ -476,16 +476,20 @@ export const getCIP68Metadata = async (unit: string): Promise<any> => {
 
   return metadata;
 };
-export const getFiles = async (unit: string, metadata?: any, actualUnit?: string): Promise<{ src: string; mediaType: string }[]> => {
+export const getFiles = async (
+  unit: string,
+  metadata?: any,
+  actualUnit?: string,
+): Promise<{ src: string; mediaType: string }[]> => {
   ensureInit();
   const files = [];
   let tokenMetadata = metadata;
-  
+
   if (unit !== 'own') {
     tokenMetadata = await getMetadata(unit);
-    actualUnit=unit;
+    actualUnit = unit;
   }
-  
+
   for (let c = 0; c < tokenMetadata?.files.length; c++) {
     const tfile: {
       src?: string;
