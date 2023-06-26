@@ -3,4 +3,4 @@ export const version = pJSON.version;
 export const getVersion = () => {
   return pJSON.version || '0';
 };
-export * from "./libcip54"
+export * from './libcip54';
