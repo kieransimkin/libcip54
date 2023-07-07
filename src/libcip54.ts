@@ -701,12 +701,17 @@ export const getFile = async (
   if (!result.id) result.id = id;
   return result;
 };
-export const getAddresses = async (unit: string, count: number=10, page?: number): Promise<{address: string, quantity: number}[]> => { 
+export const getAddresses = async (
+  unit: string,
+  count: number = 10,
+  page?: number,
+): Promise<{ address: string; quantity: number }[]> => {
   ensureInit();
   if (!_pgClient) return [];
   if (!page) page = 0;
   let addresses = null;
-  addresses = await _pgClient.query(`
+  addresses = await _pgClient.query(
+    `
   SELECT tx_out.address as "address", sum(quantity)::TEXT as "quantity"
       FROM multi_asset
           JOIN ma_tx_out      ON (ma_tx_out.ident = multi_asset.id)
@@ -719,13 +724,15 @@ export const getAddresses = async (unit: string, count: number=10, page?: number
       ORDER BY sum(quantity) DESC
       LIMIT $2
       OFFSET $3
-  `, [unit, count, count*page]);
+  `,
+    [unit, count, count * page],
+  );
   // AND (encode(policy, 'hex') || encode(name, 'hex')) = $1::TEXT
-  const ret: {address: string, quantity: number}[] = addresses.rows;
+  const ret: { address: string; quantity: number }[] = addresses.rows;
   return ret;
   // Alternatively you can get this data from BF:
   // addresses = await Blockfrost.API.assetsAddresses(unit);
-}
+};
 export const getSmartImports = async (
   featureTree: {
     libraries: { name: string; version: string }[];
