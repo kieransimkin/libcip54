@@ -701,7 +701,7 @@ export const getFile = async (
   if (!result.id) result.id = id;
   return result;
 };
-export const getAddresses = async function(unit: string, count: number=10, page?: number): Promise<{address: string, quantity: number}[]> { 
+export const getAddresses = async (unit: string, count: number=10, page?: number): Promise<{address: string, quantity: number}[]> => { 
   ensureInit();
   if (!_pgClient) return [];
   if (!page) page = 0;
@@ -724,7 +724,7 @@ export const getAddresses = async function(unit: string, count: number=10, page?
   const ret: {address: string, quantity: number}[] = addresses.rows;
   return ret;
   // Alternatively you can get this data from BF:
-  //addresses = await Blockfrost.API.assetsAddresses(unit);
+  // addresses = await Blockfrost.API.assetsAddresses(unit);
 }
 export const getSmartImports = async (
   featureTree: {
