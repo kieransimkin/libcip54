@@ -341,7 +341,7 @@ export const getMetadata = async (unit: string): Promise<any> => {
   let metadata = null;
   if (!label || !labelIsCIP68(label)) {
     const mintTx = await getMintTx(unit);
-    if (mintTx && typeof mintTx.metadata === 'object') {
+    if (mintTx && mintTx.metadata && typeof mintTx.metadata === 'object') {
       const nftMetadata: any = mintTx.metadata.filter((m: any) => m.key === 721)[0].json;
       const policyMetadata = nftMetadata[policyId];
       if (policyMetadata[Buffer.from(assetName || '', 'hex').toString()]) {
