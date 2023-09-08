@@ -1,6 +1,6 @@
 import pgCon from 'pg';
 import axios from 'axios';
-
+import { RedisClientType } from 'redis';
 import * as CSL from '@emurgo/cardano-serialization-lib-nodejs';
 let _networkId: number | null = null;
 let _pgClient: pgCon.Client | null = null;
@@ -9,6 +9,9 @@ export const USER_TOKEN_LABEL = 222;
 export const CIP25_LABEL = 721;
 let IPFS_GATEWAY: string | null = null;
 let ARWEAVE_GATEWAY: string | null = null;
+let _redis:RedisClientType | null = null;
+let _redisPrefix:string = '';
+let _redisTTL:number = 3600;
 import pJSON from '../package.json';
 
 export const init = (
@@ -16,16 +19,44 @@ export const init = (
   connection: pgCon.Client,
   ipfsGateway: string | null = null,
   arweaveGateway: string | null = null,
+  redis: RedisClientType | null = null,
+  redisPrefix: string = 'cip54:',
+  redisTTL: number = 3600
 ) => {
   _networkId = networkId === 'testnet' ? 0 : 1;
   _pgClient = connection;
   IPFS_GATEWAY = ipfsGateway;
   ARWEAVE_GATEWAY = arweaveGateway;
+  _redis = redis;
+  _redisPrefix = redisPrefix;
+  _redisTTL = redisTTL;
 };
 
 const ensureInit = () => {
   if (!_pgClient || !_networkId) throw new Error('Libcip54 error - please initialize before use');
 };
+
+const checkCache = async(name: string) => { 
+  if (!_redis) return null;
+  let cache: any = await _redis.get(_redisPrefix+':'+name);
+  if (!cache) return null;
+  cache = JSON.parse(cache);
+  return cache;
+}
+
+const doCache = async(name: string, data: any, ttl?: number) => {
+  if (!_redis) return;
+  await _redis.setEx(_redisPrefix+':'+name, ttl ? ttl : _redisTTL, JSON.stringify(data));
+}
+
+const fetchCached = async(url: string) => {
+  if (!_redis) return await fetch(url);
+  let cresult;
+  if (cresult = await checkCache('fetchCached:'+url)) return cresult;
+  cresult = await fetch(url);
+  await doCache('fetchCached:'+url, cresult);
+  return cresult;
+}
 
 export async function getTransactions(
   featureTree: { transactions: string[] | string },
@@ -54,6 +85,8 @@ export async function getTransactions(
 export async function getTransactionsFromStake(stakeAddress: string, page: number = 0): Promise<any> {
   ensureInit();
   if (!_pgClient) return [];
+  let cresult;
+  if (cresult = await checkCache('getTransactionsFromStake:'+page+':'+stakeAddress)) return cresult;
   let txs: any = await _pgClient.query(
     `
     SELECT 
@@ -131,6 +164,7 @@ OFFSET $2
     [stakeAddress, 20 * page],
   );
   txs = txs.rows;
+  await doCache('getTransactionsFromStake:'+page+':'+stakeAddress, txs);
   return txs;
 }
 
@@ -161,6 +195,8 @@ export async function getTokensFromStake(
 ): Promise<{ unit: string; quantity: number }[]> {
   ensureInit();
   if (!_pgClient) return [];
+  let cresult;
+  if (cresult = await checkCache('getTokensFromStake:'+page+':'+stakeAddress)) return cresult;
   let assets: any = await _pgClient.query(
     `
     SELECT 
@@ -179,6 +215,7 @@ export async function getTokensFromStake(
     [stakeAddress],
   );
   assets = assets.rows;
+  await doCache('getTokensFromStake:'+page+':'+stakeAddress, assets);
   return assets;
 }
 
@@ -257,6 +294,8 @@ export async function getUTXOsFromEither(
 > {
   ensureInit();
   if (!_pgClient) return [];
+  let cresult;
+  if (cresult = await checkCache('getUTXOsFromEither:'+page+':'+stakeAddress+':'+baseAddress)) return cresult;
   let filter = '(stake_address.view = $1::TEXT)';
   let field = stakeAddress;
   if (baseAddress) {
@@ -293,6 +332,7 @@ export async function getUTXOsFromEither(
     [field],
   );
   utres = utres.rows;
+  await doCache('getUTXOsFromEither:'+page+':'+stakeAddress+':'+baseAddress, utres);
   return utres;
 }
 
@@ -301,7 +341,7 @@ export async function getLibraries(featureTree: {
 }): Promise<{ libraries: string[]; css: string[] }> {
   const ret: { libraries: string[]; css: string[] } = { libraries: [], css: [] };
   for (const library of featureTree.libraries) {
-    const result = await fetch(
+    const result = await fetchCached(
       'https://api.cdnjs.com/libraries/' + library.name + '/' + library.version + '?fields=name,version,files',
     );
     const json = await result.json();
@@ -318,7 +358,7 @@ export async function getLibraries(featureTree: {
         continue;
       }
       const url = 'https://cdnjs.cloudflare.com/ajax/libs/' + library.name + '/' + library.version + '/' + file;
-      const fresult = await fetch(url);
+      const fresult = await fetchCached(url);
       const blob = await fresult.blob();
       const ab = await blob.arrayBuffer();
       const ia = new Uint8Array(ab);
@@ -371,6 +411,9 @@ export const getMintTx = async (
     };
   }
   if (!_pgClient) return null;
+  let cresult;
+  if (cresult = await checkCache('getMintTx:'+unit)) return cresult;
+
   const mintTx = await _pgClient.query(
     `
     SELECT 
@@ -397,13 +440,15 @@ export const getMintTx = async (
     [unit.substring(0, 56), unit.substring(56)],
   );
   if (!mintTx.rows.length) return null;
+  await doCache('getMintTx:'+unit, mintTx.rows[0]);
   return mintTx.rows[0];
 };
 
 export const getCIP68Metadata = async (unit: string): Promise<any> => {
   ensureInit();
   if (!_pgClient) return [];
-
+  let cresult;
+  if (cresult = await checkCache('getCIP68Metadata:'+unit)) return cresult;
   let datum: any = await _pgClient.query(
     `
     SELECT           
@@ -471,7 +516,7 @@ export const getCIP68Metadata = async (unit: string): Promise<any> => {
     }
     metadata[Buffer.from(field.k.bytes, 'hex').toString()] = value;
   }
-
+  await doCache('getCIP68Metadata:'+unit, metadata);
   return metadata;
 };
 export const getFiles = async (
@@ -709,6 +754,9 @@ export const getAddresses = async (
   ensureInit();
   if (!_pgClient) return [];
   if (!page) page = 0;
+  let cresult;
+  if (cresult = await checkCache('getAddresses:'+page+':'+count+':'+unit)) return cresult;
+  
   let addresses = null;
   addresses = await _pgClient.query(
     `
@@ -729,6 +777,7 @@ export const getAddresses = async (
   );
   // AND (encode(policy, 'hex') || encode(name, 'hex')) = $1::TEXT
   const ret: { address: string; quantity: number }[] = addresses.rows;
+  await doCache('getAddresses:'+page+':'+count+':'+unit, ret);
   return ret;
   // Alternatively you can get this data from BF:
   // addresses = await Blockfrost.API.assetsAddresses(unit);
