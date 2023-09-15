@@ -10,9 +10,14 @@ The [Smart NFT Playground](https://nft-playground.dev/) includes a very simple b
 
 ## Usage
 
-Install the library via npm or yarn:
+Install the library via npm:
 ```
 npm install libcip54
+```
+
+Install the library via yarn:
+```
+yarn add libcip54
 ```
 
 Initially you must connect to the Postgres database server running DBSync. Optionally you can also connect a redis client instance for caching. Then you must pass your Postgres client handle, and optionally the redis client handle to the init() function in libcip54 before you may use the API.
