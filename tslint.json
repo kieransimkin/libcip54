@@ -3,6 +3,7 @@
     "rules": {
         "no-empty": [true, "allow-empty-catch"],
         "no-bitwise": false,
+        "no-conditional-assignment":false,
         "prefer-for-of": false
     }
     
