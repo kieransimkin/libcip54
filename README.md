@@ -10,15 +10,20 @@ The [Smart NFT Playground](https://nft-playground.dev/) includes a very simple b
 
 ## Usage
 
-First you must connect to the Postgres database server running DBSync. Then you must pass your Postgres client handle to the init() function in libcip54 before you may use the API.
+Install the library via npm or yarn:
+```
+npm install libcip54
+```
+
+Initially you must connect to the Postgres database server running DBSync. Optionally you can also connect a redis client instance for caching. Then you must pass your Postgres client handle, and optionally the redis client handle to the init() function in libcip54 before you may use the API.
 
 ```js
 import { init, getSmartImports } from "libcip54"
 import pgCon from 'pg';
 export default async () => { 
     const client = new pgCon.Client({connectionString: process.env.DBSYNC_URI});
-    client.connect();
-    init('mainnet', pgClient);
+    await client.connect();
+    init('mainnet', client);
     const metadata={...}; // the NFT metadata as a javascript object
     const ownerAddr='Bech32 address of current owner';
     const tokenUnit='<policyID><assetNameHex>';
@@ -26,13 +31,34 @@ export default async () => {
 }
 ```
 
+With a redis connection:
+
+```js
+import { init, getSmartImports } from "libcip54"
+import { createClient } from 'redis';
+import pgCon from 'pg';
+export default async () => { 
+    const redisClient = createClient({ url: process.env.REDIS_URI });
+    await redisClient.connect();
+    const pgClient = new pgCon.Client({connectionString: process.env.DBSYNC_URI});
+    await pgClient.connect();
+    init('mainnet', pgClient, null, null, redisClient);
+}
+```
+
 ## Functions
 
 In the API, when you see the term "unit" referring to a token - this just means the policyID followed by the asset name in hex encoding (with no separating character). 
 
-#### `init: (networkId: 'mainnet' | 'testnet', connection: pgCon.Client): void`
+#### `init: (networkId: 'mainnet' | 'testnet', connection: pgCon.Client, ipfsGateway: string, arweaveGateway: string, redisClient: redis.RedisClientType, redisPrefix: string, redisTTL: number): void`
 
 You must call this function first with your database handle, otherwise all others fill fail.
+
+The ipfsGateway and arweaveGateway strings specify http gateways for IPFS and arweave respectively.
+
+redisPrefix allows you to specify a prefix for all libcip54 keys in the redis database.
+
+redisTTL allows you to specify how long the redis cache will persist.
 
 #### `getSmartImports: (featureTree: { libraries: { name: string; version: string; }[]; tokens: string[] | string; utxos: string[] | string; transactions: string[] | string; mintTx?: boolean; files?: boolean;}, walletAddr: string, tokenUnit: string) => Promise<any>;`
 
