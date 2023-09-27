@@ -50,10 +50,10 @@ const doCache = async (name: string, data: any, ttl?: number) => {
 };
 
 const fetchCachedJson = async (url: string) => {
-  if (!_redis) {  
-	  const r=await fetch(url);
-	  return await r.json();
-  };
+  if (!_redis) {
+    const r = await fetch(url);
+    return await r.json();
+  }
   let cresult;
   if ((cresult = await checkCache('fetchCachedJson:' + url))) {
     return cresult;
@@ -66,8 +66,8 @@ const fetchCachedJson = async (url: string) => {
 
 const fetchCachedBlob = async (url: string) => {
   if (!_redis) {
-	  const r = await fetch(url);
-	  return await r.blob();
+    const r = await fetch(url);
+    return await r.blob();
   }
   let cresult;
   if ((cresult = await checkCache('fetchCachedBlob:' + url))) {
