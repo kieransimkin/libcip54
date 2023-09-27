@@ -49,15 +49,37 @@ const doCache = async (name: string, data: any, ttl?: number) => {
   await _redis.setEx(_redisPrefix + ':' + name, ttl ? ttl : _redisTTL, JSON.stringify(data));
 };
 
-const fetchCached = async (url: string) => {
-  if (!_redis) return await fetch(url);
+const fetchCachedJson = async (url: string) => {
+  if (!_redis) {  
+	  const r=await fetch(url);
+	  return await r.json();
+  };
   let cresult;
-  if ((cresult = await checkCache('fetchCached:' + url))) {
-    // return cresult;
+  if ((cresult = await checkCache('fetchCachedJson:' + url))) {
+    return cresult;
   }
   cresult = await fetch(url);
-  await doCache('fetchCached:' + url, JSON.stringify(cresult));
-  return cresult;
+  const json = await cresult.json();
+  await doCache('fetchCachedJson:' + url, json);
+  return json;
+};
+
+const fetchCachedBlob = async (url: string) => {
+  if (!_redis) {
+	  const r = await fetch(url);
+	  return await r.blob();
+  }
+  let cresult;
+  if ((cresult = await checkCache('fetchCachedBlob:' + url))) {
+    //return cresult;
+  }
+  cresult = await fetch(url);
+  const blob = await cresult.blob();
+  const arrayBuffer = await blob.arrayBuffer();
+  const buffer = Buffer.from(arrayBuffer);
+
+  await doCache('fetchCachedBlob:' + url, buffer.toJSON());
+  return blob;
 };
 
 export async function getTransactions(
@@ -344,11 +366,10 @@ export async function getLibraries(featureTree: {
 }): Promise<{ libraries: string[]; css: string[] }> {
   const ret: { libraries: string[]; css: string[] } = { libraries: [], css: [] };
   for (const library of featureTree.libraries) {
-    const result = await fetchCached(
+    const result = await fetchCachedJson(
       'https://api.cdnjs.com/libraries/' + library.name + '/' + library.version + '?fields=name,version,files',
     );
-    const json = await result.json();
-    const files = json.files;
+    const files = result.files;
     const name = library.name;
     for (const file of files) {
       if (
@@ -361,12 +382,11 @@ export async function getLibraries(featureTree: {
         continue;
       }
       const url = 'https://cdnjs.cloudflare.com/ajax/libs/' + library.name + '/' + library.version + '/' + file;
-      const fresult = await fetchCached(url);
-      const blob = await fresult.blob();
-      const ab = await blob.arrayBuffer();
+      const fresult = await fetchCachedBlob(url);
+      const ab = await fresult.arrayBuffer();
       const ia = new Uint8Array(ab);
       const tresult = new TextDecoder().decode(ia);
-      const mType = blob.type.split(';')[0];
+      const mType = fresult.type.split(';')[0];
       const librarySrc = 'data:' + mType + ',' + encodeURIComponent(tresult);
       if (mType.toLowerCase() === 'application/javascript') {
         ret.libraries.push(librarySrc);
