@@ -73,7 +73,7 @@ const fetchCachedBlob = async (url: string) => {
   if ((cresult = await checkCache('fetchCachedBlob:' + url))) {
     const b = Buffer.from(cresult.data);
     const bb = new Blob([b], { type: cresult.type });
-    return bb;
+    // return bb; TODO - Something not working here so disabling caching for blobs, for now
   }
   cresult = await fetch(url);
   const blob = await cresult.blob();
