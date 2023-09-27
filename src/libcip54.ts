@@ -72,7 +72,7 @@ const fetchCachedBlob = async (url: string) => {
   let cresult;
   if ((cresult = await checkCache('fetchCachedBlob:' + url))) {
 	  const b = Buffer.from(cresult.data);
-	  const bb = new Blob([b], {type: cresult['type']});
+	  const bb = new Blob([b], {type: cresult.type});
 	  return bb;
   }
   cresult = await fetch(url);
