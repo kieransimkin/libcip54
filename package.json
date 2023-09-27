@@ -5,7 +5,10 @@
   "main": "lib/src/index.js",
   "types": "lib/src/index.d.ts",
   "homepage": "https://nft-playground.dev",
-  "repository": "https://github.com/kieransimkin/libcip54.git",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/kieransimkin/libcip54.git"
+  },
   "author": "Kieran Simkin <382129+kieransimkin@users.noreply.github.com>",
   "license": "BSD-3-Clause-Attribution",
   "devDependencies": {
