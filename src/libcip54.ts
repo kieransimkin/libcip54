@@ -850,7 +850,7 @@ export const getSmartImports = async (
     ret.mintTx = await getMintTx(tokenUnit);
   }
   if (featureTree?.files) {
-    if (typeof featureTree?.files === 'boolean') {
+    if (typeof featureTree?.files === 'boolean' || typeof featureTree?.files === 'number') {
       ret.files = featureTree?.files;
     } else {
       if (typeof featureTree?.files === 'string') {
