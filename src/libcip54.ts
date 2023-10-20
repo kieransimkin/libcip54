@@ -245,6 +245,28 @@ export async function getTokensFromStake(
   return assets;
 }
 
+export async function getTokensFromPolicy(policyId: string, page: number = 0): Promise<any> {
+  ensureInit();
+  if (!_pgClient) return [];
+  let cresult;
+  if ((cresult = await checkCache('getTokensFromPolicy:' + page + ':' + policyId))) return cresult;
+  let tokens: any = await _pgClient.query(
+    `
+    SELECT 
+    concat(encode(multi_asset.policy, 'hex'), encode(multi_asset.name, 'hex')) AS unit,
+	sum(quantity)::TEXT as "quantity"
+FROM multi_asset 
+join ma_tx_mint on (ma_tx_mint.ident=multi_asset.id)
+WHERE (encode(multi_asset.policy,'hex') = $1::TEXT)
+GROUP BY concat(encode(multi_asset.policy, 'hex'), encode(multi_asset.name, 'hex'))
+    `,
+    [policyId],
+  );
+  tokens = tokens.rows;
+  await doCache('getTokensFromPolicy:' + page + ':' + policyId, tokens);
+  return tokens;
+}
+
 export async function getUTXOs(featureTree: { utxos: string[] | string }, walletAddr: string): Promise<any> {
   const ret: any = {};
   let utxos = featureTree.utxos;
