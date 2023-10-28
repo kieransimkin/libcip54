@@ -432,10 +432,10 @@ export const getMetadata = async (unit: string): Promise<any> => {
     const mintTx = await getMintTx(unit);
     if (mintTx && mintTx.metadata && typeof mintTx.metadata === 'object') {
       const nftMetadata: any = mintTx.metadata.filter((m: any) => m.key === 721)[0]?.json;
-      let policyMetadata=[];
-      if (nftMetadata) { 
+      let policyMetadata = [];
+      if (nftMetadata) {
         policyMetadata = nftMetadata[policyId];
-      } 
+      }
       if (policyMetadata[Buffer.from(assetName || '', 'hex').toString()]) {
         metadata = policyMetadata[Buffer.from(assetName || '', 'hex').toString()];
       } else if (policyMetadata[assetName || '']) {
