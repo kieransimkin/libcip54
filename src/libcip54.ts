@@ -259,6 +259,8 @@ FROM multi_asset
 join ma_tx_mint on (ma_tx_mint.ident=multi_asset.id)
 WHERE (encode(multi_asset.policy,'hex') = $1::TEXT)
 GROUP BY concat(encode(multi_asset.policy, 'hex'), encode(multi_asset.name, 'hex'))
+HAVING sum(quantity)>0
+ORDER BY sum(quantity) DESC
     `,
     [policyId],
   );
@@ -429,8 +431,11 @@ export const getMetadata = async (unit: string): Promise<any> => {
   if (!label || !labelIsCIP68(label)) {
     const mintTx = await getMintTx(unit);
     if (mintTx && mintTx.metadata && typeof mintTx.metadata === 'object') {
-      const nftMetadata: any = mintTx.metadata.filter((m: any) => m.key === 721)[0].json;
-      const policyMetadata = nftMetadata[policyId];
+      const nftMetadata: any = mintTx.metadata.filter((m: any) => m.key === 721)[0]?.json;
+      let policyMetadata=[];
+      if (nftMetadata) { 
+        policyMetadata = nftMetadata[policyId];
+      } 
       if (policyMetadata[Buffer.from(assetName || '', 'hex').toString()]) {
         metadata = policyMetadata[Buffer.from(assetName || '', 'hex').toString()];
       } else if (policyMetadata[assetName || '']) {
