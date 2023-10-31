@@ -47,7 +47,7 @@ export default async () => {
     await redisClient.connect();
     const pgClient = new pgCon.Client({connectionString: process.env.DBSYNC_URI});
     await pgClient.connect();
-    init('mainnet', pgClient, null, null, redisClient);
+    init('mainnet', pgClient, process.env.IPFS_GATEWAY, process.env.ARWEAVE_GATEWAY, redisClient);
 }
 ```
 
