@@ -721,11 +721,11 @@ export const getFileFromSrc = async (
     result.props = rresult.props;
     result.mediaType = rresult.mediaType;
   } else if (src.substring(0, 7) === 'ipfs://') {
-    const res = (await axios.get(IPFS_GATEWAY + src.substring(7), { responseType: 'arraybuffer'}));
+    const res = await axios.get(IPFS_GATEWAY + src.substring(7), { responseType: 'arraybuffer' });
     if (!result.mediaType) result.mediaType = res.headers['content-type'];
     result.buffer = res.data;
   } else if (src.substring(0, 5) === 'ar://') {
-    const res = (await axios.get(ARWEAVE_GATEWAY + src.substring(5), { responseType: 'arraybuffer'}))
+    const res = await axios.get(ARWEAVE_GATEWAY + src.substring(5), { responseType: 'arraybuffer' });
     if (!result.mediaType) result.mediaType = res.headers['content-type'];
     result.buffer = res.data;
   } else if (src.substring(0, 5) === 'data:') {
@@ -739,11 +739,11 @@ export const getFileFromSrc = async (
     // Something not quite right with this bit
     result.buffer = lbuffer;
   } else if (src.substring(0, 8) === 'https://') {
-    const res = (await axios.get(src.substring(8),{ responseType: 'arraybuffer'}))
+    const res = await axios.get(src.substring(8), { responseType: 'arraybuffer' });
     if (!result.mediaType) result.mediaType = res.headers['content-type'];
     result.buffer = res.data;
   } else if (src.substring(0, 7) === 'http://') {
-    const res = (await axios.get(src.substring(7),{ responseType: 'arraybuffer'}))
+    const res = await axios.get(src.substring(7), { responseType: 'arraybuffer' });
     if (!result.mediaType) result.mediaType = res.headers['content-type'];
     result.buffer = res.data;
   }
