@@ -738,9 +738,9 @@ export const getFileFromSrc = async (
     }
     // Something not quite right with this bit
     result.buffer = lbuffer;
-    if (!result.mediaType && src) { 
+    if (!result.mediaType && src) {
       const res = src.match(/[^:]\w+\/[\w-+\d.]+(?=;|,)/);
-      if (res && res.length) { 
+      if (res && res.length) {
         result.mediaType = res[0];
       }
     }
