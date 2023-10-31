@@ -751,17 +751,17 @@ export const getFile = async (
   let file = null;
 
   if (unit === 'own' && metadata) {
-    if (!id) { 
-      try { 
-        file = {src: metadata?.image};
+    if (!id) {
+      try {
+        file = { src: metadata?.image };
       } catch (e) {}
     }
-    if (!file) { 
+    if (!file) {
       try {
         file = metadata.files.filter((f: any) => f.id === id)[0];
         if (!file) file = metadata?.uses?.files.filter((f: any) => f.id === id)[0];
       } catch (e) {}
-      if ((typeof id === 'number' || (id && !isNaN(parseInt(id, undefined))) && !file)) {
+      if (typeof id === 'number' || (id && !isNaN(parseInt(id, undefined)) && !file)) {
         try {
           file = metadata.files[parseInt(String(id), undefined)];
           if (!file) file = metadata.uses?.files[parseInt(String(id), undefined)];
@@ -770,17 +770,17 @@ export const getFile = async (
     }
   } else {
     const tokenMetadata = await getMetadata(unit);
-    if (!id) { 
-      try { 
-        file = {src: tokenMetadata?.image};
+    if (!id) {
+      try {
+        file = { src: tokenMetadata?.image };
       } catch (e) {}
     }
-    if (!file) { 
+    if (!file) {
       try {
         file = tokenMetadata?.files.filter((f: any) => f.id === id)[0];
         if (!file) file = tokenMetadata?.uses?.files.filter((f: any) => f.id === id)[0];
       } catch (e) {}
-      if ((typeof id === 'number' || (id && !isNaN(parseInt(id, undefined))) && !file)) {
+      if (typeof id === 'number' || (id && !isNaN(parseInt(id, undefined)) && !file)) {
         try {
           file = tokenMetadata?.files[parseInt(String(id), undefined)];
           if (!file) file = tokenMetadata?.uses?.files[parseInt(String(id), undefined)];
