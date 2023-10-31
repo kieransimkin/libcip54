@@ -738,6 +738,12 @@ export const getFileFromSrc = async (
     }
     // Something not quite right with this bit
     result.buffer = lbuffer;
+    if (!result.mediaType && src) { 
+      const res = src.match(/[^:]\w+\/[\w-+\d.]+(?=;|,)/);
+      if (res && res.length) { 
+        result.mediaType = res[0];
+      }
+    }
   } else if (src.substring(0, 8) === 'https://') {
     const res = await axios.get(src.substring(8), { responseType: 'arraybuffer' });
     if (!result.mediaType) result.mediaType = res.headers['content-type'];
