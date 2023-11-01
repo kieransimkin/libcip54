@@ -745,11 +745,11 @@ export const getFileFromSrc = async (
       }
     }
   } else if (src.substring(0, 8) === 'https://') {
-    const res = await axios.get(src.substring(8), { responseType: 'arraybuffer' });
+    const res = await axios.get(src, { responseType: 'arraybuffer' });
     if (!result.mediaType) result.mediaType = res.headers['content-type'];
     result.buffer = res.data;
   } else if (src.substring(0, 7) === 'http://') {
-    const res = await axios.get(src.substring(7), { responseType: 'arraybuffer' });
+    const res = await axios.get(src, { responseType: 'arraybuffer' });
     if (!result.mediaType) result.mediaType = res.headers['content-type'];
     result.buffer = res.data;
   }
