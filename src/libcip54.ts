@@ -729,12 +729,12 @@ export const getFileFromSrc = async (
     if (!result.mediaType) result.mediaType = res.headers['content-type'];
     result.buffer = res.data;
   } else if (src.substring(0, 5) === 'data:') {
-    const el = src.split(',', 2);
+    const [first, ...rest] = src.split(',');
     let lbuffer = null;
-    if (el[0].includes('base64')) {
-      lbuffer = Buffer.from(el[1], 'base64');
+    if (first.includes('base64')) {
+      lbuffer = Buffer.from(rest.join(','), 'base64');
     } else {
-      lbuffer = decodeURIComponent(el[1]);
+      lbuffer = decodeURIComponent(rest.join(','));
     }
     // Something not quite right with this bit
     result.buffer = lbuffer;
@@ -767,7 +767,7 @@ export const getFile = async (
   if (unit === 'own' && metadata) {
     if (!id) {
       try {
-        file = { src: metadata?.image?.join('') };
+        file = { src: metadata?.image };
       } catch (e) {}
     }
     if (!file) {
@@ -786,7 +786,7 @@ export const getFile = async (
     const tokenMetadata = await getMetadata(unit);
     if (!id) {
       try {
-        file = { src: tokenMetadata?.image?.join('') };
+        file = { src: tokenMetadata?.image};
       } catch (e) {}
     }
     if (!file) {
