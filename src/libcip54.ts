@@ -786,7 +786,7 @@ export const getFile = async (
     const tokenMetadata = await getMetadata(unit);
     if (!id) {
       try {
-        file = { src: tokenMetadata?.image};
+        file = { src: tokenMetadata?.image };
       } catch (e) {}
     }
     if (!file) {
