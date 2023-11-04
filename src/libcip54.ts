@@ -767,7 +767,7 @@ export const getFile = async (
   if (unit === 'own' && metadata) {
     if (!id) {
       try {
-        file = { src: metadata?.image };
+        file = { src: metadata?.image?.join('') };
       } catch (e) {}
     }
     if (!file) {
@@ -786,7 +786,7 @@ export const getFile = async (
     const tokenMetadata = await getMetadata(unit);
     if (!id) {
       try {
-        file = { src: tokenMetadata?.image };
+        file = { src: tokenMetadata?.image?.join('') };
       } catch (e) {}
     }
     if (!file) {
