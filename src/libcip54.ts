@@ -272,8 +272,9 @@ ORDER BY sum(quantity) DESC
 export async function getPolicyHolders(policyId: string | string[], page: number=0): Promise<any> { 
   ensureInit();
   if (!_pgClient) return [];
-  let cresult, policies, count=20;
-  if (typeof policyId == 'string') { 
+  let cresult, policies;
+  const count=20;
+  if (typeof policyId === 'string') { 
     policies = [policyId];
   } else { 
     policies=policyId;
@@ -305,7 +306,8 @@ export async function getPolicyHolders(policyId: string | string[], page: number
 export async function getTokenHolders(unit: string, page: number=0): Promise<any> { 
   ensureInit();
   if (!_pgClient) return [];
-  let cresult, count=20;
+  let cresult;
+  const count=20;
   if ((cresult = await checkCache('getTokenHolders:' + page + ':' + unit))) return cresult;
   let holders = null;
   holders = await _pgClient.query(`
