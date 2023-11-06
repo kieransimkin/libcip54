@@ -315,25 +315,21 @@ export async function getTokenHolders(unit: string, page: number = 0): Promise<a
   let holders = null;
   holders = await _pgClient.query(
     `
-  SELECT 
-    sum(ma_tx_out.quantity) AS quantity,
-    stake_address.view as stake
-  FROM ma_tx_out
-  JOIN multi_asset    ON (ma_tx_out.ident = multi_asset.id)
-  JOIN tx_out         ON (tx_out.id = ma_tx_out.tx_out_id)
-  JOIN tx             ON (tx.id = tx_out.tx_id)
-  LEFT JOIN tx_in txi ON (tx_out.tx_id = txi.tx_out_id)
-    AND (tx_out.index = txi.tx_out_index)
-  JOIN stake_address  ON (stake_address.id = tx_out.stake_address_id)
-  WHERE valid_contract = 'true' and txi IS NULL
-    encode(multi_asset.policy ,'hex') = $1::TEXT AND
-    encode(multi_asset.name, 'hex') = $2::TEXT
-  GROUP BY tx_out.address
+  SELECT address, view as stake, sum(quantity) as quantity from ma_tx_out
+    JOIN tx_out txo ON (txo.id = ma_tx_out.tx_out_id)
+    JOIN tx ON (tx.id = txo.tx_id)
+    JOIN stake_address on (stake_address.id = txo.stake_address_id)
+    LEFT JOIN tx_in txi ON (txo.tx_id = txi.tx_out_id)
+    AND (txo.index = txi.tx_out_index)
+  WHERE txi IS NULL
+    AND tx.valid_contract = 'true'
+  AND ident=(SELECT id FROM multi_asset ma WHERE (encode(policy, 'hex') || encode(name, 'hex')) = $1::TEXT)
+  GROUP BY address, view
   ORDER BY sum(ma_tx_out.quantity) desc
-  LIMIT $3::BIGINT
-  OFFSET $4::BIGINT
+  LIMIT $2::BIGINT
+  OFFSET $3::BIGINT
   `,
-    [unit.substring(0, 56), unit.substring(56), count, count * page],
+    [unit, count, count * page],
   );
   holders = holders.rows;
   await doCache('getTokenHolders:' + page + ':' + unit, holders);
