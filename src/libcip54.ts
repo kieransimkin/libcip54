@@ -310,7 +310,7 @@ export async function getTokenHolders(unit: string, page: number = 0): Promise<a
   ensureInit();
   if (!_pgClient) return [];
   let cresult;
-  const count = 20;
+  const count:number = 20;
   if ((cresult = await checkCache('getTokenHolders:' + page + ':' + unit))) return cresult;
   let holders = null;
   holders = await _pgClient.query(
@@ -329,8 +329,8 @@ export async function getTokenHolders(unit: string, page: number = 0): Promise<a
     encode(multi_asset.name, 'hex') = $2::TEXT
   GROUP BY stake_address.id
   ORDER BY sum(ma_tx_out.quantity) desc
-  LIMIT $2
-  OFFSET $3
+  LIMIT $3::BIGINT
+  OFFSET $4::BIGINT
   `,
     [unit.substring(0, 56), unit.substring(56), count, count * page],
   );
