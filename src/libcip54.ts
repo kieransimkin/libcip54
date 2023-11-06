@@ -269,19 +269,20 @@ ORDER BY sum(quantity) DESC
   return tokens;
 }
 
-export async function getPolicyHolders(policyId: string | string[], page: number=0): Promise<any> { 
+export async function getPolicyHolders(policyId: string | string[], page: number = 0): Promise<any> {
   ensureInit();
   if (!_pgClient) return [];
   let cresult, policies;
-  const count=20;
-  if (typeof policyId === 'string') { 
+  const count = 20;
+  if (typeof policyId === 'string') {
     policies = [policyId];
-  } else { 
-    policies=policyId;
+  } else {
+    policies = policyId;
   }
   if ((cresult = await checkCache('getPolicyHolders:' + page + ':' + policies.join(':')))) return cresult;
   let holders = null;
-  holders = await _pgClient.query(`
+  holders = await _pgClient.query(
+    `
   SELECT 
     sum(ma_tx_out.quantity) AS quantity,
     stake_address.view as stake
@@ -297,20 +298,23 @@ export async function getPolicyHolders(policyId: string | string[], page: number
   ORDER BY sum(ma_tx_out.quantity) desc
   LIMIT $2
   OFFSET $3
-  `, [policies, count, count*page]);
+  `,
+    [policies, count, count * page],
+  );
   holders = holders.rows;
   await doCache('getPolicyHolders:' + page + ':' + policies.join(':'), holders);
   return holders;
 }
 
-export async function getTokenHolders(unit: string, page: number=0): Promise<any> { 
+export async function getTokenHolders(unit: string, page: number = 0): Promise<any> {
   ensureInit();
   if (!_pgClient) return [];
   let cresult;
-  const count=20;
+  const count = 20;
   if ((cresult = await checkCache('getTokenHolders:' + page + ':' + unit))) return cresult;
   let holders = null;
-  holders = await _pgClient.query(`
+  holders = await _pgClient.query(
+    `
   SELECT 
     sum(ma_tx_out.quantity) AS quantity,
     stake_address.view as stake
@@ -327,7 +331,9 @@ export async function getTokenHolders(unit: string, page: number=0): Promise<any
   ORDER BY sum(ma_tx_out.quantity) desc
   LIMIT $2
   OFFSET $3
-  `, [unit.substring(0,56), unit.substring(56), count, count*page]);
+  `,
+    [unit.substring(0, 56), unit.substring(56), count, count * page],
+  );
   holders = holders.rows;
   await doCache('getTokenHolders:' + page + ':' + unit, holders);
   return holders;
