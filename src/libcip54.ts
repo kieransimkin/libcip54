@@ -269,6 +269,68 @@ ORDER BY sum(quantity) DESC
   return tokens;
 }
 
+export async function getPolicyHolders(policyId: string | Array<string>, page: number=0): Promise<any> { 
+  ensureInit();
+  if (!_pgClient) return [];
+  let cresult, policies, count=20;
+  if (typeof policyId == 'string') { 
+    policies = [policyId];
+  } else { 
+    policies=policyId;
+  }
+  if ((cresult = await checkCache('getPolicyHolders:' + page + ':' + policies.join(':')))) return cresult;
+  let holders = null;
+  holders = await _pgClient.query(`
+  SELECT 
+    sum(ma_tx_out.quantity) AS quantity,
+    stake_address.view as stake
+  FROM multi_asset 
+  JOIN ma_tx_out      ON (ma_tx_out.ident = multi_asset.id)
+  JOIN tx_out         ON (tx_out.id = ma_tx_out.tx_out_id)
+  JOIN tx             ON (tx.id = tx_out.tx_id)
+  JOIN utxo_view      ON (utxo_view.id = ma_tx_out.tx_out_id)
+  JOIN stake_address  ON (stake_address.id = tx_out.stake_address_id)
+  WHERE valid_contract = 'true' and
+    encode(multi_asset.policy ,'hex') = ANY($1::TEXT[])
+  GROUP BY stake_address.id
+  ORDER BY sum(ma_tx_out.quantity) desc
+  LIMIT $2
+  OFFSET $3
+  `, [policies, count, count*page]);
+  holders = holders.rows;
+  await doCache('getPolicyHolders:' + page + ':' + policies.join(':'), holders);
+  return holders;
+}
+
+export async function getTokenHolders(unit: string, page: number=0): Promise<any> { 
+  ensureInit();
+  if (!_pgClient) return [];
+  let cresult, count=20;
+  if ((cresult = await checkCache('getTokenHolders:' + page + ':' + unit))) return cresult;
+  let holders = null;
+  holders = await _pgClient.query(`
+  SELECT 
+    sum(ma_tx_out.quantity) AS quantity,
+    stake_address.view as stake
+  FROM multi_asset 
+  JOIN ma_tx_out      ON (ma_tx_out.ident = multi_asset.id)
+  JOIN tx_out         ON (tx_out.id = ma_tx_out.tx_out_id)
+  JOIN tx             ON (tx.id = tx_out.tx_id)
+  JOIN utxo_view      ON (utxo_view.id = ma_tx_out.tx_out_id)
+  JOIN stake_address  ON (stake_address.id = tx_out.stake_address_id)
+  WHERE valid_contract = 'true' and
+    encode(multi_asset.policy ,'hex') = $1::TEXT AND
+    encode(multi_asset.name, 'hex') = $2::TEXT
+  GROUP BY stake_address.id
+  ORDER BY sum(ma_tx_out.quantity) desc
+  LIMIT $2
+  OFFSET $3
+  `, [unit.substring(0,56), unit.substring(56), count, count*page]);
+  holders = holders.rows;
+  await doCache('getTokenHolders:' + page + ':' + unit, holders);
+  return holders;
+}
+
 export async function getUTXOs(featureTree: { utxos: string[] | string }, walletAddr: string): Promise<any> {
   const ret: any = {};
   let utxos = featureTree.utxos;
