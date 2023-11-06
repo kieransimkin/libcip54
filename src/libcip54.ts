@@ -269,7 +269,7 @@ ORDER BY sum(quantity) DESC
   return tokens;
 }
 
-export async function getPolicyHolders(policyId: string | Array<string>, page: number=0): Promise<any> { 
+export async function getPolicyHolders(policyId: string | string[], page: number=0): Promise<any> { 
   ensureInit();
   if (!_pgClient) return [];
   let cresult, policies, count=20;
