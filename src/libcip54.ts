@@ -310,7 +310,7 @@ export async function getTokenHolders(unit: string, page: number = 0): Promise<a
   ensureInit();
   if (!_pgClient) return [];
   let cresult;
-  const count:number = 20;
+  const count: number = 20;
   if ((cresult = await checkCache('getTokenHolders:' + page + ':' + unit))) return cresult;
   let holders = null;
   holders = await _pgClient.query(
