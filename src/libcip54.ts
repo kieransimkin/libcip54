@@ -318,16 +318,17 @@ export async function getTokenHolders(unit: string, page: number = 0): Promise<a
   SELECT 
     sum(ma_tx_out.quantity) AS quantity,
     stake_address.view as stake
-  FROM multi_asset 
-  JOIN ma_tx_out      ON (ma_tx_out.ident = multi_asset.id)
+  FROM ma_tx_out
+  JOIN multi_asset    ON (ma_tx_out.ident = multi_asset.id)
   JOIN tx_out         ON (tx_out.id = ma_tx_out.tx_out_id)
   JOIN tx             ON (tx.id = tx_out.tx_id)
-  JOIN utxo_view      ON (utxo_view.id = ma_tx_out.tx_out_id)
+  LEFT JOIN tx_in txi ON (tx_out.tx_id = txi.tx_out_id)
+    AND (tx_out.index = txi.tx_out_index)
   JOIN stake_address  ON (stake_address.id = tx_out.stake_address_id)
-  WHERE valid_contract = 'true' and
+  WHERE valid_contract = 'true' and txi IS NULL
     encode(multi_asset.policy ,'hex') = $1::TEXT AND
     encode(multi_asset.name, 'hex') = $2::TEXT
-  GROUP BY stake_address.id
+  GROUP BY tx_out.address
   ORDER BY sum(ma_tx_out.quantity) desc
   LIMIT $3::BIGINT
   OFFSET $4::BIGINT
