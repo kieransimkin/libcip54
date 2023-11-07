@@ -1208,13 +1208,13 @@ function unicodeToBase64(str: string) {
   )
 }
 const dataURItoString = (dataURI: string) => {
-  var byteString = '';
+  let byteString = '';
   const [first, ...rest] = dataURI.split(',');
   if (first.includes('base64')) { 
       byteString = base64ToUnicode(rest.join(','));
   } else { 
       byteString = decodeURIComponent(rest.join(','));
   }
-  //var mimeString = dataURI.split(',')[0].split(':')[1].split(';')[0] // Not needed but extracted anyway
+  // let mimeString = dataURI.split(',')[0].split(':')[1].split(';')[0] // Not needed but extracted anyway
   return byteString;
 }
