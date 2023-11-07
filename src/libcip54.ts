@@ -221,7 +221,7 @@ export async function getAdaHandleFromAddress(walletAddr: string): Promise<objec
     `,
     [stake],
   );
-  handle = handle?.rows[0].handle;
+  handle = handle?.rows[0]?.handle;
   if (handle) {
     handle = base64ToUnicode(handle);
     handle = punycode.toUnicode(handle);
