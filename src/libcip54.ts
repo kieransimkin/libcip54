@@ -194,6 +194,36 @@ OFFSET $2
   return txs;
 }
 
+export async function getAdaHandleFromAddress(walletAddr:string): Promise<object | null> { 
+  
+  ensureInit();
+  if (!_pgClient) return [];
+  let cresult;
+  if ((cresult = await checkCache('getAdaHandleFromAddress:' + walletAddr))) return cresult;
+
+  const stake = getStakeFromAny(walletAddr);
+  if (!stake) return null;
+  let handle: any = await _pgClient.query(
+    `
+    SELECT 
+         encode(multi_asset.name, 'hex') AS handle
+    FROM multi_asset 
+        JOIN ma_tx_out      ON (ma_tx_out.ident = multi_asset.id) 
+        JOIN tx_out         ON (tx_out.id = ma_tx_out.tx_out_id)
+        JOIN utxo_view      ON (utxo_view.id = ma_tx_out.tx_out_id) 
+        JOIN stake_address  ON (stake_address.id = utxo_view.stake_address_id)
+        JOIN tx             ON (tx.id = utxo_view.tx_id)
+    WHERE (stake_address.view = $1::TEXT) 
+            AND encode(multi_asset.policy,'hex')='f0ff48bbb7bbe9d59a40f1ce90e9e9d0ff5002ec48f232b49ca0fb9a'
+            AND tx.valid_contract = 'true'
+    GROUP BY encode(multi_asset.name, 'hex')
+	  LIMIT 1;
+    `,[stake]);
+    handle = handle.rows[0];
+    await doCache('getAdaHandleFromAddress:' + stake, handle);
+    return handle;
+}
+
 export async function getTokens(featureTree: { tokens: string[] | string }, walletAddr: string): Promise<object> {
   const ret: any = {};
   let tokens = featureTree.tokens;
