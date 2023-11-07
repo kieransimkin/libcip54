@@ -227,8 +227,8 @@ export async function getAdaHandleFromAddress(walletAddr: string): Promise<objec
     handle = punycode.toUnicode(handle);
     await doCache('getAdaHandleFromAddress:' + stake, handle);
     return handle;
-  } else { 
-    return null
+  } else {
+    return null;
   }
 }
 
