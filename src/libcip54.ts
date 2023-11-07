@@ -225,10 +225,11 @@ export async function getAdaHandleFromAddress(walletAddr: string): Promise<objec
   if (handle) {
     handle = hexToAscii(handle);
     handle = punycode.toUnicode(handle);
+    await doCache('getAdaHandleFromAddress:' + stake, handle);
+    return handle;
+  } else { 
+    return null
   }
-
-  await doCache('getAdaHandleFromAddress:' + stake, handle);
-  return handle;
 }
 
 export async function getTokens(featureTree: { tokens: string[] | string }, walletAddr: string): Promise<object> {
