@@ -1,5 +1,6 @@
 import pgCon from 'pg';
 import axios from 'axios';
+import punycode from 'punycode'
 import { RedisClientType } from 'redis';
 import * as CSL from '@emurgo/cardano-serialization-lib-nodejs';
 let _networkId: number | null = null;
@@ -220,7 +221,12 @@ export async function getAdaHandleFromAddress(walletAddr: string): Promise<objec
     `,
     [stake],
   );
-  handle = handle.rows[0];
+  handle = handle?.rows[0];
+  if (handle) { 
+    handle = base64ToUnicode(handle);
+    handle = punycode.toUnicode(handle);
+  }
+
   await doCache('getAdaHandleFromAddress:' + stake, handle);
   return handle;
 }
@@ -1180,4 +1186,35 @@ export function crc8(current: Uint8Array, previous = 0): number {
   }
 
   return crc;
+}
+
+
+const base64ToUnicode = (str:string) => { 
+  return decodeURIComponent(
+      atob(str)
+          .split('')
+          .map(function (c) {
+              return '%' + ('00' + c.charCodeAt(0).toString(16)).slice(-2)
+          })
+          .join('')
+  )
+}
+function unicodeToBase64(str: string) {
+
+  return btoa(
+    encodeURIComponent(str).replace(/%([0-9A-F]{2})/g, function toSolidBytes(match, p1) {
+      return String.fromCharCode(Number('0x' + p1))
+    })
+  )
+}
+const dataURItoString = (dataURI: string) => {
+  var byteString = '';
+  const [first, ...rest] = dataURI.split(',');
+  if (first.includes('base64')) { 
+      byteString = base64ToUnicode(rest.join(','));
+  } else { 
+      byteString = decodeURIComponent(rest.join(','));
+  }
+  //var mimeString = dataURI.split(',')[0].split(':')[1].split(';')[0] // Not needed but extracted anyway
+  return byteString;
 }
