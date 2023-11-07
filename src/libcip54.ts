@@ -194,8 +194,7 @@ OFFSET $2
   return txs;
 }
 
-export async function getAdaHandleFromAddress(walletAddr:string): Promise<object | null> { 
-  
+export async function getAdaHandleFromAddress(walletAddr: string): Promise<object | null> {
   ensureInit();
   if (!_pgClient) return [];
   let cresult;
@@ -218,10 +217,12 @@ export async function getAdaHandleFromAddress(walletAddr:string): Promise<object
             AND tx.valid_contract = 'true'
     GROUP BY encode(multi_asset.name, 'hex')
 	  LIMIT 1;
-    `,[stake]);
-    handle = handle.rows[0];
-    await doCache('getAdaHandleFromAddress:' + stake, handle);
-    return handle;
+    `,
+    [stake],
+  );
+  handle = handle.rows[0];
+  await doCache('getAdaHandleFromAddress:' + stake, handle);
+  return handle;
 }
 
 export async function getTokens(featureTree: { tokens: string[] | string }, walletAddr: string): Promise<object> {
