@@ -223,7 +223,7 @@ export async function getAdaHandleFromAddress(walletAddr: string): Promise<objec
   );
   handle = handle?.rows[0]?.handle;
   if (handle) {
-    handle = base64ToUnicode(handle);
+    handle = hexToAscii(handle);
     handle = punycode.toUnicode(handle);
   }
 
@@ -1198,6 +1198,15 @@ const base64ToUnicode = (str: string) => {
       .join(''),
   );
 };
+function hexToAscii(str1: string)
+ {
+	var hex  = str1.toString();
+	var str = '';
+	for (var n = 0; n < hex.length; n += 2) {
+		str += String.fromCharCode(parseInt(hex.substr(n, 2), 16));
+	}
+	return str;
+ }
 function unicodeToBase64(str: string) {
   return btoa(
     encodeURIComponent(str).replace(/%([0-9A-F]{2})/g, function toSolidBytes(match, p1) {
