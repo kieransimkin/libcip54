@@ -254,9 +254,12 @@ export async function getTokens(featureTree: { tokens: string[] | string }, wall
 
 // Todo - detect full addresses rather than stake addresses and do a slightly different query for them
 
-export async function getTokensFromAny(address: string, page: number=0): Promise<{unit:string, quantity: number}[]|null> { 
+export async function getTokensFromAny(
+  address: string,
+  page: number = 0,
+): Promise<{ unit: string; quantity: number }[] | null> {
   let stakeAddress: string | null = address;
-  
+
   stakeAddress = getStakeFromAny(stakeAddress);
   if (stakeAddress) {
     return await getTokensFromStake(stakeAddress, page);
@@ -267,20 +270,20 @@ export async function getTokensFromAny(address: string, page: number=0): Promise
 export async function getTokensFromStake(
   stakeAddress: string,
   page: number = 0,
-  policies: boolean = false
+  policies: boolean = false,
 ): Promise<{ unit: string; quantity: number }[]> {
   ensureInit();
   if (!_pgClient) return [];
   let cresult;
-  let defaultGroup="GROUP BY concat(encode(multi_asset.policy, 'hex'), encode(multi_asset.name, 'hex'))";
-  let defaultSelect="concat(encode(multi_asset.policy, 'hex'), encode(multi_asset.name, 'hex')) AS unit";
-  let defaultCache="getTokensFromStake";
-  if (policies) { 
-    defaultGroup ="GROUP BY encode(multi_asset.policy, 'hex')"; 
-    defaultSelect="encode(multi_asset.policy, 'hex') AS UNIT";
-    defaultCache="getUniquePoliciesFromStake"
-  } 
-  if ((cresult = await checkCache(defaultCache+':' + page + ':' + stakeAddress))) return cresult;
+  let defaultGroup = "GROUP BY concat(encode(multi_asset.policy, 'hex'), encode(multi_asset.name, 'hex'))";
+  let defaultSelect = "concat(encode(multi_asset.policy, 'hex'), encode(multi_asset.name, 'hex')) AS unit";
+  let defaultCache = 'getTokensFromStake';
+  if (policies) {
+    defaultGroup = "GROUP BY encode(multi_asset.policy, 'hex')";
+    defaultSelect = "encode(multi_asset.policy, 'hex') AS UNIT";
+    defaultCache = 'getUniquePoliciesFromStake';
+  }
+  if ((cresult = await checkCache(defaultCache + ':' + page + ':' + stakeAddress))) return cresult;
   let assets: any = await _pgClient.query(
     `
     SELECT 
@@ -299,12 +302,15 @@ export async function getTokensFromStake(
     [stakeAddress],
   );
   assets = assets.rows;
-  await doCache(defaultCache+':' + page + ':' + stakeAddress, assets);
+  await doCache(defaultCache + ':' + page + ':' + stakeAddress, assets);
   return assets;
 }
 
-export async function getUniquePoliciesFromStake(stakeAddress: string, page: number=0): Promise<{unit: string; quantity: number}[]> {
-return await getTokensFromStake(stakeAddress, page, true);
+export async function getUniquePoliciesFromStake(
+  stakeAddress: string,
+  page: number = 0,
+): Promise<{ unit: string; quantity: number }[]> {
+  return await getTokensFromStake(stakeAddress, page, true);
 }
 
 export async function getTokensFromPolicy(policyId: string, page: number = 0): Promise<any> {
