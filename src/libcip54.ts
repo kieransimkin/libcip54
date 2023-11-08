@@ -968,6 +968,7 @@ export const getFile = async (
     src,
     file?.mediaType,
   );
+  if (!result) return null as any;
   result.src = src;
   const origProps = result.props;
   result.props = { ...file };
