@@ -847,7 +847,7 @@ export const getFileFromSrc = async (
     mediaType,
     buffer: '',
   };
-  if (!src) return <any> null;
+  if (!src) return null as any;
 
   if (src.substring(0, 5) === 'cnft:') {
     // Here we actually recurse
@@ -897,11 +897,11 @@ export const getFileFromSrc = async (
     const res = await axios.get(src, { responseType: 'arraybuffer' });
     if (!result.mediaType) result.mediaType = res.headers['content-type'];
     result.buffer = res.data;
-  } else if (src.substring(0,5) == 'ipfs/') { 
+  } else if (src.substring(0,5) === 'ipfs/') { 
     const res = await axios.get(IPFS_GATEWAY + src.substring(5), { responseType: 'arraybuffer' });
     if (!result.mediaType) result.mediaType = res.headers['content-type'];
     result.buffer = res.data;
-  } else if (src.length==46) { // ipfs hash is 46 bytes long, sometimes people get confused
+  } else if (src.length===46) { // ipfs hash is 46 bytes long, sometimes people get confused
     const res = await axios.get(IPFS_GATEWAY + src, { responseType: 'arraybuffer' });
     if (!result.mediaType) result.mediaType = res.headers['content-type'];
     result.buffer = res.data;
