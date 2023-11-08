@@ -861,11 +861,11 @@ export const getFileFromSrc = async (
     const res = await axios.get(IPFS_GATEWAY + src.substring(7), { responseType: 'arraybuffer' });
     if (!result.mediaType) result.mediaType = res.headers['content-type'];
     result.buffer = res.data;
-  } else if (src.substring(0, 14) === 'ipfs://ipfs://') { 
+  } else if (src.substring(0, 14) === 'ipfs://ipfs://') {
     const res = await axios.get(IPFS_GATEWAY + src.substring(14), { responseType: 'arraybuffer' });
     if (!result.mediaType) result.mediaType = res.headers['content-type'];
     result.buffer = res.data;
-  } else if (src.substring(0,12) === 'ipfs://ipfs:' || src.substring(0,12) === 'ipfs:ipfs://') { 
+  } else if (src.substring(0, 12) === 'ipfs://ipfs:' || src.substring(0, 12) === 'ipfs:ipfs://') {
     const res = await axios.get(IPFS_GATEWAY + src.substring(12), { responseType: 'arraybuffer' });
     if (!result.mediaType) result.mediaType = res.headers['content-type'];
     result.buffer = res.data;
@@ -897,11 +897,12 @@ export const getFileFromSrc = async (
     const res = await axios.get(src, { responseType: 'arraybuffer' });
     if (!result.mediaType) result.mediaType = res.headers['content-type'];
     result.buffer = res.data;
-  } else if (src.substring(0,5) === 'ipfs/') { 
+  } else if (src.substring(0, 5) === 'ipfs/') {
     const res = await axios.get(IPFS_GATEWAY + src.substring(5), { responseType: 'arraybuffer' });
     if (!result.mediaType) result.mediaType = res.headers['content-type'];
     result.buffer = res.data;
-  } else if (src.length===46) { // ipfs hash is 46 bytes long, sometimes people get confused
+  } else if (src.length === 46) {
+    // ipfs hash is 46 bytes long, sometimes people get confused
     const res = await axios.get(IPFS_GATEWAY + src, { responseType: 'arraybuffer' });
     if (!result.mediaType) result.mediaType = res.headers['content-type'];
     result.buffer = res.data;
