@@ -1239,7 +1239,7 @@ export function crc8(current: Uint8Array, previous = 0): number {
   return crc;
 }
 
-const base64ToUnicode = (str: string) => {
+export const base64ToUnicode = (str: string) => {
   return decodeURIComponent(
     atob(str)
       .split('')
@@ -1249,7 +1249,7 @@ const base64ToUnicode = (str: string) => {
       .join(''),
   );
 };
-function hexToAscii(str1: string) {
+export function hexToAscii(str1: string) {
   const hex = str1.toString();
   let str = '';
   for (let n = 0; n < hex.length; n += 2) {
@@ -1257,14 +1257,14 @@ function hexToAscii(str1: string) {
   }
   return str;
 }
-function unicodeToBase64(str: string) {
+export function unicodeToBase64(str: string) {
   return btoa(
     encodeURIComponent(str).replace(/%([0-9A-F]{2})/g, function toSolidBytes(match, p1) {
       return String.fromCharCode(Number('0x' + p1));
     }),
   );
 }
-const dataURItoString = (dataURI: string) => {
+export const dataURItoString = (dataURI: string) => {
   let byteString = '';
   const [first, ...rest] = dataURI.split(',');
   if (first.includes('base64')) {
@@ -1275,3 +1275,11 @@ const dataURItoString = (dataURI: string) => {
   // let mimeString = dataURI.split(',')[0].split(':')[1].split(';')[0] // Not needed but extracted anyway
   return byteString;
 };
+export function asciiToHex(str:string) { 
+  let arr1=[];
+  for (let n=0, l=str.length; n<l; n++) { 
+    let hex=Number(str.charCodeAt(n)).toString(16);
+    arr1.push(hex);
+  }
+  return arr1.join('');
+}
