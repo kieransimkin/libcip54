@@ -1276,9 +1276,9 @@ export const dataURItoString = (dataURI: string) => {
   return byteString;
 };
 export function asciiToHex(str:string) { 
-  let arr1=[];
+  const arr1=[];
   for (let n=0, l=str.length; n<l; n++) { 
-    let hex=Number(str.charCodeAt(n)).toString(16);
+    const hex=Number(str.charCodeAt(n)).toString(16);
     arr1.push(hex);
   }
   return arr1.join('');
