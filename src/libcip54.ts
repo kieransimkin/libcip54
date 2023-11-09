@@ -1275,10 +1275,10 @@ export const dataURItoString = (dataURI: string) => {
   // let mimeString = dataURI.split(',')[0].split(':')[1].split(';')[0] // Not needed but extracted anyway
   return byteString;
 };
-export function asciiToHex(str:string) { 
-  const arr1=[];
-  for (let n=0, l=str.length; n<l; n++) { 
-    const hex=Number(str.charCodeAt(n)).toString(16);
+export function asciiToHex(str: string) {
+  const arr1 = [];
+  for (let n = 0, l = str.length; n < l; n++) {
+    const hex = Number(str.charCodeAt(n)).toString(16);
     arr1.push(hex);
   }
   return arr1.join('');
