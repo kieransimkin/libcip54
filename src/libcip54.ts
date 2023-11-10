@@ -1074,7 +1074,7 @@ export const getSmartImports = async (
 // Util functions
 
 export function getStake(baseAddress: string): string | null {
-  ensureInit();
+  
   const address = CSL.BaseAddress.from_address(CSL.Address.from_bech32(baseAddress));
   if (!address) return null;
 
