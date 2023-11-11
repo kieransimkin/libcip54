@@ -631,54 +631,70 @@ export const getMintTx = async (
   return mintTx.rows[0];
 };
 
-export const getCIP68Metadata = async (unit: string): Promise<any> => {
-  ensureInit();
-  if (!_pgClient) return [];
-  let cresult;
-  if ((cresult = await checkCache('getCIP68Metadata:' + unit))) return cresult;
-  let datum: any = await _pgClient.query(
-    `
-    SELECT           
-        CASE WHEN d1.value IS NOT NULL THEN d1.value WHEN d2.value IS NOT NULL THEN d2.value ELSE NULL END datum
-    FROM multi_asset
-        JOIN ma_tx_out      ON (ma_tx_out.ident = multi_asset.id)
-        JOIN tx_out         ON (tx_out.id = ma_tx_out.tx_out_id)
-        JOIN tx             ON (tx.id = tx_out.tx_id)
-        JOIN utxo_view      ON (utxo_view.id = ma_tx_out.tx_out_id) 
-        LEFT JOIN datum d1  ON (d1.hash = tx_out.data_hash)
-        LEFT JOIN datum d2  ON (d2.id = tx_out.inline_datum_id)
-    WHERE valid_contract = 'true'
-        AND policy = decode($1::TEXT, 'hex')
-        AND name = decode($2::TEXT, 'hex')
-        LIMIT 1
-    `,
-    [unit.substring(0, 56), unit.substring(56)],
-  );
+  export const getCIP68Metadata = async (unit: string): Promise<any> => {
+    ensureInit();
+    if (!_pgClient) return [];
+    let cresult;
+    if ((cresult = await checkCache('getCIP68Metadata:' + unit))) return cresult;
+    try { 
+    let datum: any = await _pgClient.query(
+      `
+      SELECT           
+          CASE WHEN d1.value IS NOT NULL THEN d1.value WHEN d2.value IS NOT NULL THEN d2.value ELSE NULL END datum
+      FROM multi_asset
+          JOIN ma_tx_out      ON (ma_tx_out.ident = multi_asset.id)
+          JOIN tx_out         ON (tx_out.id = ma_tx_out.tx_out_id)
+          JOIN tx             ON (tx.id = tx_out.tx_id)
+          JOIN utxo_view      ON (utxo_view.id = ma_tx_out.tx_out_id) 
+          LEFT JOIN datum d1  ON (d1.hash = tx_out.data_hash)
+          LEFT JOIN datum d2  ON (d2.id = tx_out.inline_datum_id)
+      WHERE valid_contract = 'true'
+          AND policy = decode($1::TEXT, 'hex')
+          AND name = decode($2::TEXT, 'hex')
+          LIMIT 1
+      `,
+      [unit.substring(0, 56), unit.substring(56)],
+    );
 
-  datum = datum?.rows[0]?.datum;
+    datum = datum?.rows[0]?.datum;
 
-  if (!datum) return null;
+    if (!datum) return null;
 
-  const parseCborJsonList = (list: any): any => {
-    const ret = [];
-    for (const item of list) {
-      let value = null;
-      if (item.map) {
-        value = parseCborJsonMap(item.map);
-      } else if (item.bytes) {
-        value = Buffer.from(item.bytes, 'hex').toString();
-      } else if (item.list) {
-        value = parseCborJsonList(item.list);
+    const parseCborJsonList = (list: any): any => {
+      const ret = [];
+      for (const item of list) {
+        let value = null;
+        if (item.map) {
+          value = parseCborJsonMap(item.map);
+        } else if (item.bytes) {
+          value = Buffer.from(item.bytes, 'hex').toString();
+        } else if (item.list) {
+          value = parseCborJsonList(item.list);
+        }
+        ret.push(value);
       }
-      ret.push(value);
-    }
-    return ret;
-  };
+      return ret;
+    };
 
-  const parseCborJsonMap = (map: any): any => {
-    const ret: any = {};
-    for (const field of map) {
-      let value = null;
+    const parseCborJsonMap = (map: any): any => {
+      const ret: any = {};
+      for (const field of map) {
+        let value = null;
+        if (field.v.bytes) {
+          value = Buffer.from(field.v.bytes, 'hex').toString();
+        } else if (field.v.list) {
+          value = parseCborJsonList(field.v.list);
+        } else if (field.v.map) {
+          value = parseCborJsonMap(field.v.map);
+        }
+        ret[Buffer.from(field.k.bytes, 'hex').toString()] = value;
+      }
+      return ret;
+    };
+
+    const metadata: any = {};
+    for (const field of datum.fields[0].map) {
+      let value = '';
       if (field.v.bytes) {
         value = Buffer.from(field.v.bytes, 'hex').toString();
       } else if (field.v.list) {
@@ -686,25 +702,15 @@ export const getCIP68Metadata = async (unit: string): Promise<any> => {
       } else if (field.v.map) {
         value = parseCborJsonMap(field.v.map);
       }
-      ret[Buffer.from(field.k.bytes, 'hex').toString()] = value;
-    }
-    return ret;
-  };
 
-  const metadata: any = {};
-  for (const field of datum.fields[0].map) {
-    let value = '';
-    if (field.v.bytes) {
-      value = Buffer.from(field.v.bytes, 'hex').toString();
-    } else if (field.v.list) {
-      value = parseCborJsonList(field.v.list);
-    } else if (field.v.map) {
-      value = parseCborJsonMap(field.v.map);
+      metadata[Buffer.from(field.k.bytes, 'hex').toString()] = value;
     }
-    metadata[Buffer.from(field.k.bytes, 'hex').toString()] = value;
+    await doCache('getCIP68Metadata:' + unit, metadata);
+    return metadata;
+  } catch (e) { 
+    return false;
   }
-  await doCache('getCIP68Metadata:' + unit, metadata);
-  return metadata;
+  
 };
 export const getFiles = async (
   unit: string,
