@@ -631,12 +631,12 @@ export const getMintTx = async (
   return mintTx.rows[0];
 };
 
-  export const getCIP68Metadata = async (unit: string): Promise<any> => {
-    ensureInit();
-    if (!_pgClient) return [];
-    let cresult;
-    if ((cresult = await checkCache('getCIP68Metadata:' + unit))) return cresult;
-    try { 
+export const getCIP68Metadata = async (unit: string): Promise<any> => {
+  ensureInit();
+  if (!_pgClient) return [];
+  let cresult;
+  if ((cresult = await checkCache('getCIP68Metadata:' + unit))) return cresult;
+  try {
     let datum: any = await _pgClient.query(
       `
       SELECT           
@@ -707,10 +707,9 @@ export const getMintTx = async (
     }
     await doCache('getCIP68Metadata:' + unit, metadata);
     return metadata;
-  } catch (e) { 
+  } catch (e) {
     return false;
   }
-  
 };
 export const getFiles = async (
   unit: string,
