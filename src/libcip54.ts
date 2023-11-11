@@ -571,7 +571,7 @@ export const getMetadata = async (unit: string): Promise<any> => {
       if (nftMetadata) {
         policyMetadata = nftMetadata[policyId];
       }
-      if (policyMetadata && policyMetadata[Buffer.from(assetName || '', 'hex').toString()]) {
+      if ( policyMetadata && policyMetadata[Buffer.from(assetName || '', 'hex').toString()]) {
         metadata = policyMetadata[Buffer.from(assetName || '', 'hex').toString()];
       } else if (policyMetadata && policyMetadata[assetName || '']) {
         metadata = policyMetadata[assetName || ''];
