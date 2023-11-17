@@ -1276,7 +1276,7 @@ export const dataURItoString = (dataURI: string) => {
   const [first, ...rest] = dataURI.split(',');
   if (first.includes('base64')) {
     byteString = base64ToUnicode(rest.join(','));
-  } else if (first.match(/utf8/i)) { 
+  } else if (first.match(/utf8/i)) {
     byteString = rest.join(',');
   } else {
     byteString = decodeURIComponent(rest.join(','));
