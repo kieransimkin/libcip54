@@ -885,7 +885,7 @@ export const getFileFromSrc = async (
     if (first.includes('base64')) {
       lbuffer = Buffer.from(rest.join(','), 'base64');
     } else if (first.match(/utf8/i)) {
-      lbuffer = rest.join(',');
+      lbuffer = decodeURIComponent(rest.join(','));
     } else {
       lbuffer = decodeURIComponent(rest.join(','));
     }
@@ -1277,7 +1277,7 @@ export const dataURItoString = (dataURI: string) => {
   if (first.includes('base64')) {
     byteString = base64ToUnicode(rest.join(','));
   } else if (first.match(/utf8/i)) {
-    byteString = rest.join(',');
+    byteString = decodeURIComponent(rest.join(','));
   } else {
     byteString = decodeURIComponent(rest.join(','));
   }
