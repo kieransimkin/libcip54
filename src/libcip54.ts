@@ -884,6 +884,8 @@ export const getFileFromSrc = async (
     let lbuffer = null;
     if (first.includes('base64')) {
       lbuffer = Buffer.from(rest.join(','), 'base64');
+    } else if (first.match(/utf8/i)) { 
+      lbuffer = rest.join(',');
     } else {
       lbuffer = decodeURIComponent(rest.join(','));
     }
