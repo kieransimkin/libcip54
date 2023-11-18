@@ -888,9 +888,7 @@ export const getFileFromSrc = async (
       if (rest.join(',').match(/(%[0-9]{2})/)) { 
         try { 
           lbuffer = decodeURIComponent(rest.join(','));
-        } catch (e) { 
-          console.error(e);
-        }
+        } catch (e) {  }
       }
       if (!lbuffer) lbuffer=rest.join(',');
       
