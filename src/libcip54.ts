@@ -1290,7 +1290,7 @@ export const dataURItoString = (dataURI: string) => {
         byteString = decodeURIComponent(rest.join(','));
         return byteString;
       } catch (e) { 
-        console.error(e);
+        
       }
     }
     byteString = rest.join(',');
