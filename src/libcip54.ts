@@ -859,10 +859,6 @@ export const getFileFromSrc = async (
     result.buffer = rresult.buffer;
     result.props = rresult.props;
     result.mediaType = rresult.mediaType;
-  } else if (src.substring(0, 7) === 'ipfs://') {
-    const res = await axios.get(IPFS_GATEWAY + src.substring(7), { responseType: 'arraybuffer' });
-    if (!result.mediaType) result.mediaType = res.headers['content-type'];
-    result.buffer = res.data;
   } else if (src.substring(0, 14) === 'ipfs://ipfs://') {
     const res = await axios.get(IPFS_GATEWAY + src.substring(14), { responseType: 'arraybuffer' });
     if (!result.mediaType) result.mediaType = res.headers['content-type'];
@@ -873,6 +869,10 @@ export const getFileFromSrc = async (
     src.substring(0, 12) === 'ipfs://ipfs/'
   ) {
     const res = await axios.get(IPFS_GATEWAY + src.substring(12), { responseType: 'arraybuffer' });
+    if (!result.mediaType) result.mediaType = res.headers['content-type'];
+    result.buffer = res.data;
+  } else if (src.substring(0, 7) === 'ipfs://') {
+    const res = await axios.get(IPFS_GATEWAY + src.substring(7), { responseType: 'arraybuffer' });
     if (!result.mediaType) result.mediaType = res.headers['content-type'];
     result.buffer = res.data;
   } else if (src.substring(0, 5) === 'ar://') {
