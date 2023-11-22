@@ -919,7 +919,7 @@ export const getFileFromSrc = async (
     const res = await axios.get(IPFS_GATEWAY + src.substring(5), { responseType: 'arraybuffer' });
     if (!result.mediaType) result.mediaType = res.headers['content-type'];
     result.buffer = res.data;
-  } else if (src.substring(0, 6)=== '/ipfs/') { 
+  } else if (src.substring(0, 6) === '/ipfs/') {
     const res = await axios.get(IPFS_GATEWAY + src.substring(6), { responseType: 'arraybuffer' });
     if (!result.mediaType) result.mediaType = res.headers['content-type'];
     result.buffer = res.data;
