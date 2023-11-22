@@ -14,7 +14,7 @@ let _redis: RedisClientType | null = null;
 let _redisPrefix: string = '';
 let _redisTTL: number = 3600;
 import pJSON from '../package.json';
-import multihash from "multihashes";
+import multihash from 'multihashes';
 
 export const init = (
   networkId: 'mainnet' | 'testnet',
