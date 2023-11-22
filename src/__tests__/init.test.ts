@@ -1,3 +1,4 @@
+
 import { labelIsCIP68 } from '../index';
 
 test('Label is CIP68', () => {
