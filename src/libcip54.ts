@@ -14,6 +14,7 @@ let _redis: RedisClientType | null = null;
 let _redisPrefix: string = '';
 let _redisTTL: number = 3600;
 import pJSON from '../package.json';
+import * as isIPFS from 'is-ipfs';
 
 export const init = (
   networkId: 'mainnet' | 'testnet',
@@ -875,6 +876,10 @@ export const getFileFromSrc = async (
     const res = await axios.get(IPFS_GATEWAY + src.substring(7), { responseType: 'arraybuffer' });
     if (!result.mediaType) result.mediaType = res.headers['content-type'];
     result.buffer = res.data;
+  } else if (isIPFS.multihash(src)) {
+    const res = await axios.get(IPFS_GATEWAY + src, { responseType: 'arraybuffer' });
+    if (!result.mediaType) result.mediaType = res.headers['content-type'];
+    result.buffer = res.data;
   } else if (src.substring(0, 5) === 'ar://') {
     const res = await axios.get(ARWEAVE_GATEWAY + src.substring(5), { responseType: 'arraybuffer' });
     if (!result.mediaType) result.mediaType = res.headers['content-type'];
@@ -912,6 +917,10 @@ export const getFileFromSrc = async (
     result.buffer = res.data;
   } else if (src.substring(0, 5) === 'ipfs/') {
     const res = await axios.get(IPFS_GATEWAY + src.substring(5), { responseType: 'arraybuffer' });
+    if (!result.mediaType) result.mediaType = res.headers['content-type'];
+    result.buffer = res.data;
+  } else if (src.substring(0, 6)=== '/ipfs/') { 
+    const res = await axios.get(IPFS_GATEWAY + src.substring(6), { responseType: 'arraybuffer' });
     if (!result.mediaType) result.mediaType = res.headers['content-type'];
     result.buffer = res.data;
   } else if (src.length === 46) {
