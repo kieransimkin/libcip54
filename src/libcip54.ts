@@ -16,6 +16,33 @@ let _redisTTL: number = 3600;
 import pJSON from '../package.json';
 import multihash from 'multihashes';
 
+/**
+* @description This function initializes the values of several properties based on
+* input parameters related to database and IPFS connectivity.
+* 
+* @param { string } networkId - The `networkId` input parameter determines whether
+* to use mainnet or testnet credentials for connecting to external services like
+* IPFS and Arweave.
+* 
+* @param { undefined } connection - The `connection` input parameter is used to
+* establish a connection to a PostgreSQL database and return a client object for it.
+* 
+* @param { string } ipfsGateway - The `ipfsGateway` input parameter allows the user
+* to provide a custom IPFS gateway endpoint for the app to communicate with the IPFS
+* network.
+* 
+* @param { string } arweaveGateway - The `arweaveGateway` input parameter is an
+* optional string that specifies the Arweave gateway to use for IPLD resolution.
+* 
+* @param {  } redis - The `redis` input parameter is an optional parameter that sets
+* the Redis client instance to be used for storage.
+* 
+* @param { string } [redisPrefix=cip54:] - The `redisPrefix` input parameter specifies
+* the prefix to use when storing data with Redis.
+* 
+* @param { number } [redisTTL=3600] - The `redisTTL` input parameter specifies the
+* expiration time (in seconds) of data stored on Redis.
+*/
 export const init = (
   networkId: 'mainnet' | 'testnet',
   connection: pgCon.Client,
@@ -34,10 +61,26 @@ export const init = (
   _redisTTL = redisTTL;
 };
 
+/**
+* @description This function checks if the `libcip54` client and network IDs are
+* defined before allowing the code to run.
+*/
 const ensureInit = () => {
   if (!_pgClient || !_networkId) throw new Error('Libcip54 error - please initialize before use');
 };
 
+/**
+* @description This function checks if a given key exists for the current session.
+* It uses Redis to retrieve the value associated with the given key (using `_redis.get()`)
+* and if no value is found or the value cannot be parsed as JSON (e.g., it contains
+* invalid JSON), it returns null.
+* 
+* @param { string } name - The `name` input parameter is a string that is used as a
+* key to retrieve data from the cache.
+* 
+* @returns { object } The output returned by this function is `null` if the cache
+* entry for the given name does not exist or its value cannot be parsed as JSON.
+*/
 const checkCache = async (name: string) => {
   if (!_redis) return null;
   let cache: any = await _redis.get(_redisPrefix + ':' + name);
@@ -46,11 +89,38 @@ const checkCache = async (name: string) => {
   return cache;
 };
 
+/**
+* @description This function caches the given `data` under a unique key constructed
+* from `name` using Redis' `setEx` method.
+* 
+* @param { string } name - The `name` input parameter is a string that specifies the
+* key to be storedin the Redis cache.
+* 
+* @param { any } data - The `data` input parameter is passed through to the underlying
+* `setEx()` method call within the function and represents the data to be stored.
+* 
+* @param { number } ttl - The `ttl` input parameter is an optional number that
+* specifies the Time To Live (TTL) of the cached data. It sets the maximum amount
+* of time that the data can be stored before it expires and needs to be re-cached.
+*/
 const doCache = async (name: string, data: any, ttl?: number) => {
   if (!_redis) return;
   await _redis.setEx(_redisPrefix + ':' + name, ttl ? ttl : _redisTTL, JSON.stringify(data));
 };
 
+/**
+* @description This function fetches JSON data from a URL and stores it into Redis
+* cache for future retrieval. It first checks if the URL is already cached using
+* `checkCache`, if it is it returns the cached result immediately.
+* 
+* @param { string } url - The `url` parameter is the string identifier of a specific
+* URL to be fetched and cached.
+* 
+* @returns { object } This function is aasyncronous and returns the JSON data fetched
+* from the specified URL. It first checks if the data is available locally cached
+* if not it makes the HTTP request using `fetch()` method then parse the response
+* as JSON using `.json()`.
+*/
 const fetchCachedJson = async (url: string) => {
   if (!_redis) {
     const r = await fetch(url);
@@ -66,6 +136,33 @@ const fetchCachedJson = async (url: string) => {
   return json;
 };
 
+/**
+* @description This function fetches a resource at a given URL and returns the fetched
+* resource as a Blob. If the resource is already cached and matches the expected
+* type (based on checkCache()), it returns the cached version instead of refetching
+* from the URL.
+* 
+* @param { string } url - The `url` input parameter specifies the URL of the resource
+* to fetch and returns a Blob object.
+* 
+* @returns { object } The output of the `fetchCachedBlob` function is a `Promise`
+* that resolves to a `Blob` object. Here's a step-by-step breakdown of the output:
+* 
+* 1/ If the `_redis` variable is `undefined`, the function first fetches the resource
+* at the provided URL using the `fetch` API.
+* 2/ It then converts the response into a `Blob` object using the `.blob()` method.
+* 3/ If there is a cache hit (i.e., the requested URL has been fetched before and
+* the response is already cached), the function returns the cached response as a
+* `Blob` object.
+* 4/ Otherwise (i.e., there is no cache hit), the function fetches the resource from
+* the URL using `fetch`, converts the response into an `arrayBuffer` using the
+* `.arrayBuffer()` method of the `Blob` object.
+* 5/ Finally ,the function returns the `arrayBuffer` as a `Promise` that resolves
+* to a `Blob` object.
+* 
+* In simpler terms: If there's a cache hit (cached response is available for the
+* requested URL), the function returns the cached response as-is (Step 3).
+*/
 const fetchCachedBlob = async (url: string) => {
   if (!_redis) {
     const r = await fetch(url);
@@ -86,6 +183,23 @@ const fetchCachedBlob = async (url: string) => {
   return blob;
 };
 
+/**
+* @description This function retrieves transactions for multiple stake addresses
+* specified by a feature tree. It takes a feature tree with "transactions" property
+* as a string or an array of strings and a wallet address. Then it loops through
+* each transaction string or array element and gets the stake address from it.
+* 
+* @param { object } featureTree - The `featureTree` input parameter is a JavaScript
+* object that contains an array of transaction identifiers or a single transaction
+* identifier as a string.
+* 
+* @param { string } walletAddr - The `walletAddr` input parameter is used to specify
+* the wallet address for which transactions are being retrieved.
+* 
+* @returns { Promise } The function `getTransactions` returns a Promise of an object
+* where each key is a stake address and the value is an array of transactions for
+* that stake address.
+*/
 export async function getTransactions(
   featureTree: { transactions: string[] | string },
   walletAddr: string,
@@ -110,6 +224,39 @@ export async function getTransactions(
 }
 
 // Todo - detect full addresses rather than stake addresses and do a slightly different query for them
+/**
+* @description This function retrieves transactions from a specific stake address
+* and returns them sorted by transaction ID descending and limited to the specified
+* limit.
+* 
+* @param { string } stakeAddress - The `stakeAddress` input parameter passed to the
+* function `getTransactionsFromStake` is a string value that represents the address
+* of a staking wallet.
+* 
+* @param { number } [page=0] - The `page` input parameter limits the number of results
+* returned from the query. It defaults to 0 and can take integers to skip over a
+* subset of results.
+* 
+* @returns { Promise } The output of the `getTransactionsFromStake` function is an
+* array of objects representing the transactions associated with a given stake
+* address. Each object contains several properties:
+* 
+* 	- `hash`: The hash of the transaction as a hex string.
+* 	- `out_sum`: The total output value of the transaction as a numeric string.
+* 	- `fee`: The fee paid for the transaction as a numeric string.
+* 	- `deposit`: The deposited amount of the transaction as a numeric string.
+* 	- `size`: The size of the transaction as an integer.
+* 	- `invalid_before`: The timestamp at which the transaction was invalidated before
+* the current block as an integer.
+* 	- `invalid_hereafter`: The timestamp at which the transaction becomes invalid
+* after the current block as an integer.
+* 	- `script_size`: The size of the script as an integer.
+* 	- `block_no`: The block number where the transaction is located as an integer.
+* 	- `time`: The time when the block was mined as a Unix timestamp (milliseconds)
+* 	- `outputs`: An array of objects representing the outputs of the transaction.
+* Each output object contains properties such as address and value.
+* 	- `inputs`: An array of objects representing the inputs of the transaction.
+*/
 export async function getTransactionsFromStake(stakeAddress: string, page: number = 0): Promise<any> {
   ensureInit();
   if (!_pgClient) return [];
@@ -196,6 +343,40 @@ OFFSET $2
   return txs;
 }
 
+/**
+* @description This function retrieves the Ada handle associated with a given wallet
+* address. It first checks if the address has an existing stake entry and then queries
+* the database for the multi-asset information linked to that address using PostgreSQL
+* SQL queries.
+* 
+* @param { string } walletAddr - The `walletAddr` input parameter specifies the
+* address of a Cardano wallet to look up and retrieve the corresponding Ada handle.
+* 
+* @returns { Promise } This function takes a wallet address as input and returns a
+* hex-encoded Ada handle or null if no matching handle is found. Here's a breakdown
+* of the function:
+* 
+* 1/ It checks if the function has been initialized. If not yet initialized then it
+* does so now.
+* 2/ If there is a cache hit (i.e., a result for the given address was already cached)
+* it returns the cached result directly.
+* 3/ Else (or if there's no cache hit), it fetches data from the PostgreSQL database
+* by running a SELECT statement with joins on multiple tables to retrieve information
+* about the specified wallet address and the corresponding Ada handle(s). The query
+* includes filters to ensure that only Ada assets with a specific policy and a valid
+* contract are considered.
+* 4/ After retrieving the results from the database (as a JSON array), it returns a
+* hex-encoded Ada handle if at least one match was found. If no match is found (i.e.,
+* there is no Ada asset with the specified policy and a valid contract), then null
+* is returned.
+* 5/ If the function successfully fetched data from the database but there are
+* multiple matching handles (unlikely scenario), it caches the result to avoid this
+* edge case scenario.
+* 
+* In other words: If an Ada wallet address exists for which the policy is
+* f0ff48bbb7bbe9d59a40f1ce90e9e9d0ff5002ec48f232b49ca0fb9a and has a valid contract
+* it will return that handle.
+*/
 export async function getAdaHandleFromAddress(walletAddr: string): Promise<object | null> {
   ensureInit();
   if (!_pgClient) return [];
@@ -233,6 +414,23 @@ export async function getAdaHandleFromAddress(walletAddr: string): Promise<objec
   }
 }
 
+/**
+* @description This function takes a feature tree with a list of tokens and a wallet
+* address as inputs and returns an object where each key is a stake address and the
+* value is an array of token assets for that address.
+* 
+* @param { object } featureTree - The `featureTree` input parameter is an object
+* with a `tokens` property that contains an array of strings representing the token
+* addresses or a single string containing multiple token addresses separated by commas.
+* 
+* @param { string } walletAddr - The `walletAddr` parameter is used to specify the
+* wallet address that should be used to retrieve tokens from stake addresses specified
+* as "own" during iteration through feature tree.
+* 
+* @returns { Promise } The output returned by this function is an object with the
+* form `{Address1: Asset1., Address2: Asset2., ...}`. The `Asset`s are the tokens
+* held by the addresses specified.
+*/
 export async function getTokens(featureTree: { tokens: string[] | string }, walletAddr: string): Promise<object> {
   const ret: any = {};
   let tokens = featureTree.tokens;
@@ -255,6 +453,21 @@ export async function getTokens(featureTree: { tokens: string[] | string }, wall
 
 // Todo - detect full addresses rather than stake addresses and do a slightly different query for them
 
+/**
+* @description This function gets tokens associated with an address or stake address
+* by checking the Stellar blockchain and returning a list of token-quantity pairs
+* or `null` if no matches are found.
+* 
+* @param { string } address - The `address` input parameter specifies the address
+* to look up tokens for.
+* 
+* @param { number } [page=0] - The `page` input parameter specifies the current page
+* of results to retrieve.
+* 
+* @returns { Promise } This function takes a string `address` and returns an array
+* of objects with two properties: `unit` and `quantity`. The objects represent tokens
+* associated with the given address.
+*/
 export async function getTokensFromAny(
   address: string,
   page: number = 0,
@@ -268,6 +481,25 @@ export async function getTokensFromAny(
   return null;
 }
 
+/**
+* @description This function retrieves a list of token balances for a given stake
+* address from the multi-asset table and returns an array of objects with `unit` and
+* `quantity` properties.
+* 
+* @param { string } stakeAddress - The `stakeAddress` parameter is used to filter
+* the results by the stake address associated with each asset.
+* 
+* @param { number } [page=0] - The `page` input parameter is an optional integer
+* parameter that specifies the current page of results to retrieve from the database.
+* 
+* @param { boolean } policies - The `policies` input parameter allows the function
+* to filter the results by policy.
+* 
+* @returns { Promise } The output of the function `getTokensFromStake` is an array
+* of objects with two properties: `unit` and `quantity`. The `unit` property is a
+* hex-encoded string representing the multi-asset policy or name of the token
+* associated with the stake address.
+*/
 export async function getTokensFromStake(
   stakeAddress: string,
   page: number = 0,
@@ -307,6 +539,22 @@ export async function getTokensFromStake(
   return assets;
 }
 
+/**
+* @description This function retrieves the unique policies (i.e., tokens) held by a
+* specific stake address and returns an array of objects containing the unit and
+* quantity of each policy.
+* 
+* @param { string } stakeAddress - The `stakeAddress` input parameter specifies the
+* address of a stake (e.g., a Cosmos zone) for which to retrieve unique policies.
+* 
+* @param { number } [page=0] - The `page` input parameter is used to specify the
+* starting point of the query results. It determines which range of data to retrieve
+* from the staking pool.
+* 
+* @returns { Promise } This function takes a `stakeAddress` parameter and returns a
+* promise that resolves to an array of objects containing two properties each: `unit`
+* and `quantity`.
+*/
 export async function getUniquePoliciesFromStake(
   stakeAddress: string,
   page: number = 0,
@@ -314,6 +562,21 @@ export async function getUniquePoliciesFromStake(
   return await getTokensFromStake(stakeAddress, page, true);
 }
 
+/**
+* @description This function retrieves the list of tokens associated with a specific
+* policy and returns them as an array of objects with "unit" and "quantity" properties.
+* 
+* @param { string } policyId - The `policyId` input parameter specifies the identifier
+* of the policy for which to retrieve tokens.
+* 
+* @param { number } [page=0] - The `page` input parameter is an optional parameter
+* that specifies which page of results to return. It defaults to 0 if not provided.
+* 
+* @returns { Promise } This function returns a list of objects with two properties:
+* "unit" and "quantity". The "unit" property is a concatenation of the hex-encoded
+* policy ID and name of the token. The "quantity" property is the sum of all
+* transactions for that token.
+*/
 export async function getTokensFromPolicy(policyId: string, page: number = 0): Promise<any> {
   ensureInit();
   if (!_pgClient) return [];
@@ -338,6 +601,35 @@ ORDER BY sum(quantity) DESC
   return tokens;
 }
 
+/**
+* @description This is an Node.js asynchronous function that fetches the list of
+* policy holders for a set of specified policies. It takes a policy ID or an array
+* of policy IDs and returns an array of objects containing information about the
+* quantity and stake address for each holder. The function first checks if the result
+* is cached and retrieves it from cache if available. If not caching or no policy
+* ID is provided returns an empty array.
+* 
+* @param { array } policyId - The `policyId` parameter is an array of policy IDs or
+* a single policy ID that specifies which policy(ies) to query for policy holders.
+* 
+* @param { number } [page=0] - The `page` input parameter limits the results of the
+* query to a specific slice of the total result set. In this case it takes an optional
+* parameter `page`, which determines how much data will be returned.
+* 
+* @returns { Promise } Based on the code provided:
+* 
+* The `getPolicyHolders` function takes two arguments: `policyId` (either a string
+* or an array of strings) and `page` (an optional integer representing the page
+* number). The function returns a promise that resolves to an array of objects
+* containing the following properties:
+* 
+* 1/ `quantity`: the total quantity of the specified asset held by each address.
+* 2/ `stake`: the staking view associated with each address.
+* 
+* The function first checks the cache for existing results and fetches them if they
+* exist. If no cache hits occur or the function is called for the first time with a
+* new set of policy IDs/pages combinations then it will perform the database query.
+*/
 export async function getPolicyHolders(policyId: string | string[], page: number = 0): Promise<any> {
   ensureInit();
   if (!_pgClient) return [];
@@ -375,6 +667,28 @@ export async function getPolicyHolders(policyId: string | string[], page: number
   return holders;
 }
 
+/**
+* @description This function retrieves the top token holders for a specific asset
+* unit and returns an array of objects containing the holder's address and stake
+* information. It first checks if the data is cached and returns the cached result
+* if available. If not cached it executes a PostgreSQL query to retrieve the top
+* holders based on the amount of tokens held and their order is descending.
+* 
+* @param { string } unit - The `unit` input parameter specifies the specific asset
+* for which to retrieve the top token holders.
+* 
+* @param { number } [page=0] - The `page` input parameter controls the subset of
+* token holders that are returned. It specifies which portion of the total list of
+* token holders should be retrieved for a given request. In other words，the page
+* parameter limits the result set to a specific range of token holders，with the size
+* of that range being determined by the `count` parameter.
+* 
+* @returns { Promise } This function returns a list of objects containing information
+* about token holders. Each object includes properties such as address and stake
+* (the amount of tokens held), as well as sum(quantity) (the total amount of tokens
+* held). The output is organized by group (address and view) and sorted by the sum
+* of quantities held.
+*/
 export async function getTokenHolders(unit: string, page: number = 0): Promise<any> {
   ensureInit();
   if (!_pgClient) return [];
@@ -405,6 +719,22 @@ export async function getTokenHolders(unit: string, page: number = 0): Promise<a
   return holders;
 }
 
+/**
+* @description This function fetches and aggregates UTXOs for multiple stakes from
+* a feature tree.
+* 
+* @param { object } featureTree - The `featureTree` input parameter is an object
+* with a property `utxos` that can be either a string or an array of strings
+* representing the UTXOs.
+* 
+* @param { string } walletAddr - The `walletAddr` parameter is used to specify the
+* wallet address that should be used to retrieve UTXOs for each stake address.
+* 
+* @returns { Promise } This function takes a feature tree with an `utxos` field
+* containing either a single string or an array of strings representing the utxos
+* owned by a staking address (or "own" if the address is unspecified), and a wallet
+* address.
+*/
 export async function getUTXOs(featureTree: { utxos: string[] | string }, walletAddr: string): Promise<any> {
   const ret: any = {};
   let utxos = featureTree.utxos;
@@ -426,6 +756,20 @@ export async function getUTXOs(featureTree: { utxos: string[] | string }, wallet
 }
 
 // Todo - detect full addresses rather than stake addresses and do a slightly different query for them
+/**
+* @description This function fetches Unspent Transaction Outputs (UTXOs) associated
+* with a given stake address using the blockchain's RPC interface.
+* 
+* @param { string } stakeAddress - The `stakeAddress` parameter is used to specify
+* the staking address for which UTXO information is being requested.
+* 
+* @param { number } [page=0] - The `page` input parameter specifies the current page
+* of UTXOs to retrieve.
+* 
+* @returns { Promise } This function takes a `stakeAddress` and returns an array of
+* objects containing information about UTXOs (unspent transaction outputs) associated
+* with that address.
+*/
 export async function getUTXOsFromStake(
   stakeAddress: string,
   page: number = 0,
@@ -445,6 +789,20 @@ export async function getUTXOsFromStake(
   return await getUTXOsFromEither(stakeAddress, null, page);
 }
 
+/**
+* @description This function fetches UTXO data (txHash + index + address + value +
+* multiasset quantities and unit) for a given base address using promises and Page
+* Golomb cursors on top of Postgres.
+* 
+* @param { string } baseAddress - The `baseAddress` input parameter is used to specify
+* the address from which to start fetching UTXOs.
+* 
+* @param { number } [page=0] - The `page` input parameter specifies which page of
+* UTXOs to retrieve.
+* 
+* @returns { Promise } The output of the `getUTXOsFromAddr` function is an array of
+* objects containing information about UTXOs associated with the provided base address.
+*/
 export async function getUTXOsFromAddr(
   baseAddress: string,
   page: number = 0,
@@ -464,6 +822,33 @@ export async function getUTXOsFromAddr(
   return await getUTXOsFromEither(null, baseAddress, page);
 }
 
+/**
+* @description This function fetches UTXO data from a PostgreSQL database based on
+* the given parameters: `stakeAddress`, `baseAddress`, and `page`.
+* 
+* @param { string } stakeAddress - The `stakeAddress` input parameter specifies the
+* stake address of the utxos being retrieved.
+* 
+* @param { string } baseAddress - The `baseAddress` parameter is an optional input
+* that specifies a secondary address to filter the UTXOs by.
+* 
+* @param { number } [page=0] - The `page` parameter is an optional integer input
+* that specifies which page of results to return.
+* 
+* @returns { Promise } This function returns an array of objects with the following
+* properties:
+* 
+* 	- `txHash`: the hash of the transaction
+* 	- `index`: the index of the output within the transaction
+* 	- `address`: the address of the output (either the stake address or the base address)
+* 	- `value`: the value of the output
+* 	- `multiasset`: an array of objects with the following properties:
+* 	+ `quantity`: the quantity of the asset
+* 	+ `unit`: the unit of the asset (represented as a hex-encoded string)
+* 	- `datum`: either null or an object with the `value` and `id` properties.
+* 
+* The output is returned as a promise that resolves to the array of objects.
+*/
 export async function getUTXOsFromEither(
   stakeAddress: string | null,
   baseAddress: string | null,
@@ -523,6 +908,21 @@ export async function getUTXOsFromEither(
   return utres;
 }
 
+/**
+* @description This function fetches libraries' information from CDN and returns an
+* object with two properties: "libraries" and "css". It takes a feature tree as an
+* argument and uses it to determine which files to download from the CDN based on
+* various conditions.
+* 
+* @param { object } featureTree - The `featureTree` input parameter is an object
+* containing information about the desired libraries.
+* 
+* @returns { Promise } The function `getLibraries` returns an object with two
+* properties: `libraries` and `css`. The `libraries` property is an array of strings
+* containing the raw source code of each library file (in application/javascript
+* format), while the `css` property is an array of strings containing the raw source
+* code of each CSS file.
+*/
 export async function getLibraries(featureTree: {
   libraries: { name: string; version: string }[];
 }): Promise<{ libraries: string[]; css: string[] }> {
@@ -560,6 +960,19 @@ export async function getLibraries(featureTree: {
   return ret;
 }
 
+/**
+* @description This function retrieves metadata for a given NFT unit (string) by
+* querying a blockchain using two different methods depending on the label of the
+* NFT. If the NFT has a CIP25 label , the function calls the `getMintTx` to retrieve
+* the mint transaction and extract the metadata from it.
+* 
+* @param { string } unit - The `unit` input parameter is a string that represents a
+* cryptographic identifier (CID) of an NFT or a CIP68 reference token.
+* 
+* @returns { Promise } The `getMetadata` function returns a promise of an `any` type
+* that resolves to a JSON object containing NFT metadata for a given unit (a
+* cryptocurrency unit).
+*/
 export const getMetadata = async (unit: string): Promise<any> => {
   if (!unit || unit.length < 1) return null;
   const { label, name, policyId, assetName } = fromUnit(unit);
@@ -567,6 +980,14 @@ export const getMetadata = async (unit: string): Promise<any> => {
   if (!label || !labelIsCIP68(label)) {
     const mintTx = await getMintTx(unit);
     if (mintTx && mintTx.metadata && typeof mintTx.metadata === 'object') {
+/**
+* @description The provided code filters the `mintTx.metadata` object using the
+* `filter()` method and a function that checks if the current element's `key` property
+* is equal to `CIP25_LABEL`.
+* 
+* @param { any } m - The `m` input parameter is the current element being iterated
+* over during iteration of the `metadata` array.
+*/
       const nftMetadata: any = mintTx.metadata.filter((m: any) => m.key === CIP25_LABEL)[0]?.json;
       const policyMetadata = nftMetadata ? nftMetadata[policyId] : null;
       if (policyMetadata && policyMetadata[Buffer.from(assetName || '', 'hex').toString()]) {
@@ -585,6 +1006,22 @@ export const getMetadata = async (unit: string): Promise<any> => {
   return metadata;
 };
 
+/**
+* @description This function fetches the metadata for a given unit of a multi-asset
+* contract using the contract's policy and name as filters. It checks the cache first
+* before querying the database to retrieve the relevant information.
+* 
+* @param { string } unit - The `unit` input parameter specifies the specific multi-asset
+* minted transaction for which to retrieve information.
+* 
+* @returns { Promise } This function returns a JavaScript object with two properties:
+* `txHash` and `metadata`. The `txHash` property contains the hex-encoded hash of
+* the mint transaction metadata. The `metadata` property is an array of JSON objects
+* representing the metadata associated with the mint transaction.
+* 
+* The output is always a non-null object except when the `unit` parameter passed to
+* the function is "Un-minted".
+*/
 export const getMintTx = async (
   unit: string,
 ): Promise<{ txHash: string; metadata: { key: string; json: object }[] } | null> => {
@@ -629,6 +1066,32 @@ export const getMintTx = async (
   return mintTx.rows[0];
 };
 
+/**
+* @description This function retrieves the CIP-68 metadata for a given unit by
+* querying the PostgreSQL database using GraphQL. It checks if the metadata is cached
+* and if so returns the cached value.
+* 
+* @param { string } unit - The `unit` input parameter is a string that represents
+* the identifier of a CIP-68 unit.
+* 
+* @returns { Promise } The `getCIP68Metadata` function returns a JSON object
+* representing the metadata for a given unit. The metadata includes fields from the
+* contract and the transaction that created the unit. The function first checks if
+* the data is available cache and returns it if found. If not found it retrieves the
+* data from the database and caches it before returning.
+* 
+* The output of this function is a JSON object with the metadata for a given unit.
+* For example:
+* ```
+* {
+*   "name": "Test Contract",
+*   "version": "1.0",
+*   "title": "This is a test contract",
+*   "description": "A contract to test the CIP68 workflow"
+* }
+* ```
+* The output contains fields such as name', version", "title" and "description".
+*/
 export const getCIP68Metadata = async (unit: string): Promise<any> => {
   ensureInit();
   if (!_pgClient) return [];
@@ -658,6 +1121,29 @@ export const getCIP68Metadata = async (unit: string): Promise<any> => {
 
     if (!datum) return null;
 
+/**
+* @description This function takes a list of objects (in CBOR format) and recursively
+* parses each object as a JSON map or list.
+* 
+* @param { any } list - The `list` input parameter is an array of JSON objects to
+* be parsed as CBOR.
+* 
+* @returns { any } The `parseCborJsonList` function takes a list of objects as input
+* and returns an array of values parsed from each object using the following logic:
+* 
+* 1/ If the object has a `.map` property (i.e., it's a CBOR map), the function calls
+* `parseCborJsonMap` to parse the map and returns its output as the value for that
+* object.
+* 2/ If the object has a `.bytes` property (i.e., it's a CBOR binary data), the
+* function creates a new Buffer from the hex-encoded string and converts it to a
+* JSON string using `Buffer.toString()`. The result is returned as the value for
+* that object.
+* 3/ If the object has a `.list` property (i.e., it's another list of objects), the
+* function calls `parseCborJsonList` recursively on the list and returns its output
+* as the value for that object.
+* 
+* The output of this function is an array of parsed values for each input object.
+*/
     const parseCborJsonList = (list: any): any => {
       const ret = [];
       for (const item of list) {
@@ -674,6 +1160,20 @@ export const getCIP68Metadata = async (unit: string): Promise<any> => {
       return ret;
     };
 
+/**
+* @description This function takes a CBOR-encoded JSON object and parse it into a
+* JavaScript object.
+* 
+* @param { any } map - The `map` input parameter is a JavaScript object that contains
+* the CBOR map to be parsed.
+* 
+* @returns { any } This function takes a JSON object `map` and returns another JSON
+* object with the same keys as `map`, but where each value is either a string (if
+* the original value was a binary data) or an recursively formatted JSON object (if
+* the original value was a list or map).
+* 
+* In other words.
+*/
     const parseCborJsonMap = (map: any): any => {
       const ret: any = {};
       for (const field of map) {
@@ -709,6 +1209,24 @@ export const getCIP68Metadata = async (unit: string): Promise<any> => {
     return false;
   }
 };
+/**
+* @description This function retrieves file metadata and returns an array of objects
+* containing information about the files. It accepts parameters such as unit and
+* optional metadata and performs operations on them using functions like `getMetadata`
+* and `getFile`.
+* 
+* @param { string } unit - The `unit` input parameter determines which unit of
+* metadata to use for fetching the file data. It defaults to 'own' if not specified.
+* 
+* @param { any } metadata - The `metadata` input parameter provides optional metadata
+* information about the files to be retrieved.
+* 
+* @param { string } actualUnit - The `actualUnit` input parameter passes the final
+* unit (whether "own" or otherwise) of the metadata fetched by the inner promise
+* within getFiles().
+* 
+* @returns { Promise }
+*/
 export const getFiles = async (
   unit: string,
   metadata?: any,
@@ -766,6 +1284,13 @@ export const getFiles = async (
   }
   return files;
 };
+/**
+* @description
+* 
+* @param { Blob } blob -
+* 
+* @returns {  }
+*/
 export const getURLEncodedDataURLFromBlob = async (blob: Blob) => {
   const ab = await blob.arrayBuffer();
   const ia = new Uint8Array(ab);
@@ -774,11 +1299,29 @@ export const getURLEncodedDataURLFromBlob = async (blob: Blob) => {
   const fileSrc = 'data:' + mType + ',' + encodeURIComponent(tresult);
   return fileSrc;
 };
+/**
+* @description
+* 
+* @param { Blob } blob -
+* 
+* @returns { Promise }
+*/
 export const getDataURLFromBlob = async (blob: Blob): Promise<string> => {
   const arrayBuf = await blob.arrayBuffer();
   const mType = blob.type.split(';')[0];
   return 'data:' + mType + ';base64,' + Buffer.from(arrayBuf).toString('base64'); // Currently not using the function above because I have no prob
 };
+/**
+* @description
+* 
+* @param { string } unit -
+* 
+* @param {  } files -
+* 
+* @param { any } metadata -
+* 
+* @returns { Promise }
+*/
 export const getFilesFromArray = async (
   unit: string,
   files: ({ src?: string; mediaType?: string; id?: string | number } | string)[],
@@ -842,6 +1385,15 @@ export const getFilesFromArray = async (
   }
   return result;
 };
+/**
+* @description
+* 
+* @param { string } src -
+* 
+* @param { string } mediaType -
+* 
+* @returns { Promise }
+*/
 export const getFileFromSrc = async (
   src: string,
   mediaType: string,
@@ -933,6 +1485,17 @@ export const getFileFromSrc = async (
   return result;
 };
 
+/**
+* @description
+* 
+* @param { string } unit -
+* 
+* @param {  } id -
+* 
+* @param {  } metadata -
+* 
+* @returns { Promise }
+*/
 export const getFile = async (
   unit: string,
   id: string | number | null,
@@ -949,7 +1512,17 @@ export const getFile = async (
     }
     if (!file) {
       try {
+/**
+* @description
+* 
+* @param { any } f -
+*/
         file = metadata.files.filter((f: any) => f.id === id)[0];
+/**
+* @description
+* 
+* @param { any } f -
+*/
         if (!file) file = metadata?.uses?.files.filter((f: any) => f.id === id)[0];
       } catch (e) {}
       if (typeof id === 'number' || (id && !isNaN(parseInt(id, undefined)) && !file)) {
@@ -968,7 +1541,17 @@ export const getFile = async (
     }
     if (!file) {
       try {
+/**
+* @description
+* 
+* @param { any } f -
+*/
         file = tokenMetadata?.files.filter((f: any) => f.id === id)[0];
+/**
+* @description
+* 
+* @param { any } f -
+*/
         if (!file) file = tokenMetadata?.uses?.files.filter((f: any) => f.id === id)[0];
       } catch (e) {}
       if (typeof id === 'number' || (id && !isNaN(parseInt(id, undefined)) && !file)) {
@@ -1003,6 +1586,17 @@ export const getFile = async (
   if (!result.id) result.id = id;
   return result;
 };
+/**
+* @description
+* 
+* @param { string } unit -
+* 
+* @param { number } [count=10] -
+* 
+* @param { number } page -
+* 
+* @returns { Promise }
+*/
 export const getAddresses = async (
   unit: string,
   count: number = 10,
@@ -1039,6 +1633,19 @@ export const getAddresses = async (
   // Alternatively you can get this data from BF:
   // addresses = await Blockfrost.API.assetsAddresses(unit);
 };
+/**
+* @description
+* 
+* @param {  } featureTree -
+* 
+* @param { any } metadata -
+* 
+* @param { string } walletAddr -
+* 
+* @param { string } tokenUnit -
+* 
+* @returns {  }
+*/
 export const getSmartImports = async (
   featureTree: {
     libraries: { name: string; version: string }[];
@@ -1096,6 +1703,13 @@ export const getSmartImports = async (
 
 // Util functions
 
+/**
+* @description
+* 
+* @param { string } baseAddress -
+* 
+* @returns {  }
+*/
 export function getStake(baseAddress: string): string | null {
   const address = CSL.BaseAddress.from_address(CSL.Address.from_bech32(baseAddress));
   if (!address) return null;
@@ -1106,6 +1720,13 @@ export function getStake(baseAddress: string): string | null {
     .toLowerCase();
 }
 
+/**
+* @description
+* 
+* @param { string } address -
+* 
+* @returns {  }
+*/
 export function getStakeFromAny(address: string): string | null {
   // Todo - make this support address being a CSL address object
   const Address = validAddress(address);
@@ -1118,6 +1739,15 @@ export function getStakeFromAny(address: string): string | null {
   return null;
 }
 
+/**
+* @description
+* 
+* @param { string } payment -
+* 
+* @param { string } stake -
+* 
+* @returns {  }
+*/
 export function getBaseAddress(payment: string, stake: string) {
   ensureInit();
   return CSL.BaseAddress.new(
@@ -1129,6 +1759,13 @@ export function getBaseAddress(payment: string, stake: string) {
     .to_bech32();
 }
 
+/**
+* @description
+* 
+* @param { string } address -
+* 
+* @returns {  }
+*/
 export function validAddress(address: string) {
   try {
     return CSL.Address.from_bech32(address);
@@ -1141,6 +1778,13 @@ export function validAddress(address: string) {
   return;
 }
 
+/**
+* @description
+* 
+* @param { string } address -
+* 
+* @returns {  }
+*/
 export function validBech32Address(address: string) {
   try {
     return CSL.Address.from_bech32(address);
@@ -1148,6 +1792,13 @@ export function validBech32Address(address: string) {
   return;
 }
 
+/**
+* @description
+* 
+* @param { string } address -
+* 
+* @returns {  }
+*/
 export function addressType(address: string) {
   const Address = validAddress(address);
   if (!Address) return;
@@ -1163,6 +1814,13 @@ export function addressType(address: string) {
   return;
 }
 
+/**
+* @description
+* 
+* @param { number } label -
+* 
+* @returns {  }
+*/
 export const labelIsCIP68 = (label: number) => {
   if (!label) return false;
   return label === REFERENCE_TOKEN_LABEL || label === USER_TOKEN_LABEL;
@@ -1196,12 +1854,24 @@ export function fromUnit(unit: string): {
   const policyId = unit.slice(0, 56);
   const assetName = unit.slice(56) || null;
   const label = fromLabel(unit.slice(56, 64));
+/**
+* @description
+* 
+* @returns {  }
+*/
   const name = (() => {
     const hexName = Number.isInteger(label) ? unit.slice(64) : unit.slice(56);
     return hexName || null;
   })();
   return { policyId, assetName, name, label };
 }
+/**
+* @description
+* 
+* @param { number } num -
+* 
+* @returns { string }
+*/
 export function toLabel(num: number): string {
   if (num < 0 || num > 65535) {
     throw new Error(`Label ${num} out of range: min label 1 - max label 65535.`);
@@ -1210,6 +1880,13 @@ export function toLabel(num: number): string {
   return '0' + numHex + checksum(numHex) + '0';
 }
 
+/**
+* @description
+* 
+* @param { string } label -
+* 
+* @returns {  }
+*/
 export function fromLabel(label: string): number | null {
   if (label.length !== 8 || !(label[0] === '0' && label[7] === '0')) {
     return null;
@@ -1225,6 +1902,13 @@ export function fromLabel(label: string): number | null {
 function checksum(num: string): string {
   return crc8(fromHex(num)).toString(16).padStart(2, '0');
 }
+/**
+* @description
+* 
+* @param { string } hex -
+* 
+* @returns { Uint8Array }
+*/
 export function fromHex(hex: string): Uint8Array {
   return Buffer.from(hex, 'hex');
 }
@@ -1251,6 +1935,15 @@ if (typeof Int32Array !== 'undefined') {
   TABLE = new Int32Array(TABLE);
 }
 
+/**
+* @description
+* 
+* @param { Uint8Array } current -
+* 
+* @param {  } [previous=0] -
+* 
+* @returns { number }
+*/
 export function crc8(current: Uint8Array, previous = 0): number {
   let crc = ~~previous;
 
@@ -1261,8 +1954,22 @@ export function crc8(current: Uint8Array, previous = 0): number {
   return crc;
 }
 
+/**
+* @description
+* 
+* @param { string } str -
+* 
+* @returns {  }
+*/
 export const base64ToUnicode = (str: string) => {
   return decodeURIComponent(
+/**
+* @description
+* 
+* @param {  } c -
+* 
+* @returns {  }
+*/
     atob(str)
       .split('')
       .map((c) => {
@@ -1271,6 +1978,13 @@ export const base64ToUnicode = (str: string) => {
       .join(''),
   );
 };
+/**
+* @description
+* 
+* @param { string } str1 -
+* 
+* @returns {  }
+*/
 export function hexToAscii(str1: string) {
   const hex = str1.toString();
   let str = '';
@@ -1279,13 +1993,36 @@ export function hexToAscii(str1: string) {
   }
   return str;
 }
+/**
+* @description
+* 
+* @param { string } str -
+* 
+* @returns {  }
+*/
 export function unicodeToBase64(str: string) {
   return btoa(
+/**
+* @description
+* 
+* @param {  } match -
+* 
+* @param {  } p1 -
+* 
+* @returns {  }
+*/
     encodeURIComponent(str).replace(/%([0-9A-F]{2})/g, function toSolidBytes(match, p1) {
       return String.fromCharCode(Number('0x' + p1));
     }),
   );
 }
+/**
+* @description
+* 
+* @param { string } dataURI -
+* 
+* @returns {  }
+*/
 export const dataURItoString = (dataURI: string) => {
   let byteString = '';
   const [first, ...rest] = dataURI.split(',');
@@ -1305,6 +2042,13 @@ export const dataURItoString = (dataURI: string) => {
   // let mimeString = dataURI.split(',')[0].split(':')[1].split(';')[0] // Not needed but extracted anyway
   return byteString;
 };
+/**
+* @description
+* 
+* @param { string } str -
+* 
+* @returns {  }
+*/
 export function asciiToHex(str: string) {
   const arr1 = [];
   for (let n = 0, l = str.length; n < l; n++) {
