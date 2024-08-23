@@ -5,8 +5,15 @@ import punycode from 'punycode';
 import { RedisClientType } from 'redis';
 // Some contributions I will make back to harmoniclabs:
 // cardano-ledger-ts has loads of unlisted dependencies.
-import {byte, isBech32} from "@harmoniclabs/crypto"
-import {Address, Credential, Hash28, StakeAddress, StakeCredentials, CredentialType} from "@harmoniclabs/cardano-ledger-ts"
+import { byte, isBech32 } from '@harmoniclabs/crypto';
+import {
+  Address,
+  Credential,
+  Hash28,
+  StakeAddress,
+  StakeCredentials,
+  CredentialType,
+} from '@harmoniclabs/cardano-ledger-ts';
 let _networkId: number | null = null;
 let _pgClient: pgCon.Client | null = null;
 export const REFERENCE_TOKEN_LABEL = 100;
@@ -19,7 +26,6 @@ let _redisPrefix: string = '';
 let _redisTTL: number = 3600;
 let _getTimeout: number = 120000;
 import pJSON from '../package.json';
-
 
 export const init = (
   networkId: 'mainnet' | 'testnet',
@@ -1119,11 +1125,11 @@ export function getStake(baseAddress: string): string | null {
   ensureInit();
   const Addr = validAddress(baseAddress);
   if (!Addr) return null;
-  if (Addr instanceof Address) { 
+  if (Addr instanceof Address) {
     return new StakeAddress(_networkId === 1 ? 'mainnet' : 'testnet', Addr.paymentCreds.hash).toString().toLowerCase();
-  } else if (Addr instanceof StakeAddress) { 
+  } else if (Addr instanceof StakeAddress) {
     return Addr.toString().toLowerCase();
-  } else { 
+  } else {
     throw new Error('Invalid address type');
   }
 }
@@ -1135,9 +1141,15 @@ export function getStakeFromAny(address: string): string | null {
   return Addr.toString().toLowerCase();
 }
 
-export function getBaseAddress(payment: string, stake: string):string {
+export function getBaseAddress(payment: string, stake: string): string {
   ensureInit();
-  return new Address(_networkId === 1 ? 'mainnet':'testnet', new Credential(CredentialType.KeyHash,new Hash28(payment)), new StakeCredentials("stakeKey",new Hash28(stake))).toString().toLowerCase();
+  return new Address(
+    _networkId === 1 ? 'mainnet' : 'testnet',
+    new Credential(CredentialType.KeyHash, new Hash28(payment)),
+    new StakeCredentials('stakeKey', new Hash28(stake)),
+  )
+    .toString()
+    .toLowerCase();
 }
 
 /*
@@ -1154,23 +1166,23 @@ export function validAddress(address: string) {
 }
 //*/
 
-export function validAddress(address: string | byte[]):StakeAddress | Address { 
-  let ret=null;
-  if (typeof address === 'string') { 
-    try { 
+export function validAddress(address: string | byte[]): StakeAddress | Address {
+  let ret = null;
+  if (typeof address === 'string') {
+    try {
       ret = Address.fromString(address);
     } catch (e) {}
-    try { 
-    if (!ret) ret = StakeAddress.fromString(address);
+    try {
+      if (!ret) ret = StakeAddress.fromString(address);
     } catch (e) {}
   }
-  try { 
+  try {
     if (!ret) ret = Address.fromBytes(address);
-  } catch (e) {} 
-  try { 
+  } catch (e) {}
+  try {
     if (!ret) ret = StakeAddress.fromBytes(address);
   } catch (e) {}
-  if (!ret) throw new Error('Invalid address: '+address);
+  if (!ret) throw new Error('Invalid address: ' + address);
   return ret;
 }
 
@@ -1182,34 +1194,36 @@ export function validBech32Address(address: string) {
   return;
 }
 //*/
-export function validBech32Address(address: string):StakeAddress | Address { 
+export function validBech32Address(address: string): StakeAddress | Address {
   if (!isBech32(address)) throw new Error('Invalid bech32 address');
   return validAddress(address);
 }
 
-export function addressType(address: string | Address | StakeAddress): "Base"|"Pointer"|"Enterprise"|"Bootstrap"|"Stake" {
+export function addressType(
+  address: string | Address | StakeAddress,
+): 'Base' | 'Pointer' | 'Enterprise' | 'Bootstrap' | 'Stake' {
   let Addr;
   if (typeof address === 'string') {
     Addr = validAddress(address);
-  } else { 
-    Addr=address;
+  } else {
+    Addr = address;
   }
-  if (Addr instanceof Address) { 
-    switch (Addr.type) { 
-      case "base":
-        return "Base";
-      case "pointer":
-        return "Pointer";
-      case "enterprise":
-        return "Enterprise";
-      case "bootstrap":
-        return "Bootstrap";
-        default:
-          throw new Error('Invalid Address type: '+Addr.type);
+  if (Addr instanceof Address) {
+    switch (Addr.type) {
+      case 'base':
+        return 'Base';
+      case 'pointer':
+        return 'Pointer';
+      case 'enterprise':
+        return 'Enterprise';
+      case 'bootstrap':
+        return 'Bootstrap';
+      default:
+        throw new Error('Invalid Address type: ' + Addr.type);
     }
-  } else if (Addr instanceof StakeAddress) { 
+  } else if (Addr instanceof StakeAddress) {
     return 'Stake';
-  } else { 
+  } else {
     throw new Error('Invalid address type');
   }
 }
