@@ -1324,3 +1324,4 @@ export function asciiToHex(str: string) {
   }
   return arr1.join('');
 }
+
