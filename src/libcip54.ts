@@ -1156,7 +1156,7 @@ export function validAddress(address: string) {
 
 export function validAddress(address: string | byte[]):StakeAddress | Address { 
   let ret=null;
-  if (typeof address == 'string') { 
+  if (typeof address === 'string') { 
     try { 
       ret = Address.fromString(address);
     } catch (e) {}
@@ -1189,7 +1189,7 @@ export function validBech32Address(address: string):StakeAddress | Address {
 
 export function addressType(address: string | Address | StakeAddress): "Base"|"Pointer"|"Enterprise"|"Bootstrap"|"Stake" {
   let Addr;
-  if (typeof address == 'string') {
+  if (typeof address === 'string') {
     Addr = validAddress(address);
   } else { 
     Addr=address;
