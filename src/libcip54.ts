@@ -3,7 +3,10 @@ import axios from 'axios';
 import { AxiosRequestConfig, AxiosResponse } from 'axios';
 import punycode from 'punycode';
 import { RedisClientType } from 'redis';
-import * as CSL from '@emurgo/cardano-serialization-lib-nodejs';
+// Some contributions I will make back to harmoniclabs:
+// cardano-ledger-ts has loads of unlisted dependencies.
+import {byte, isBech32} from "@harmoniclabs/crypto"
+import {Address, Credential, Hash28, StakeAddress, StakeCredentials, CredentialType} from "@harmoniclabs/cardano-ledger-ts"
 let _networkId: number | null = null;
 let _pgClient: pgCon.Client | null = null;
 export const REFERENCE_TOKEN_LABEL = 100;
@@ -16,7 +19,7 @@ let _redisPrefix: string = '';
 let _redisTTL: number = 3600;
 let _getTimeout: number = 120000;
 import pJSON from '../package.json';
-import multihash from 'multihashes';
+
 
 export const init = (
   networkId: 'mainnet' | 'testnet',
@@ -1113,38 +1116,31 @@ export const getSmartImports = async (
 // Util functions
 
 export function getStake(baseAddress: string): string | null {
-  const address = CSL.BaseAddress.from_address(CSL.Address.from_bech32(baseAddress));
-  if (!address) return null;
-
-  return CSL.RewardAddress.new(_networkId || 0, address.stake_cred())
-    .to_address()
-    .to_bech32()
-    .toLowerCase();
+  ensureInit();
+  const Addr = validAddress(baseAddress);
+  if (!Addr) return null;
+  if (Addr instanceof Address) { 
+    return new StakeAddress(_networkId === 1 ? 'mainnet' : 'testnet', Addr.paymentCreds.hash).toString().toLowerCase();
+  } else if (Addr instanceof StakeAddress) { 
+    return Addr.toString().toLowerCase();
+  } else { 
+    throw new Error('Invalid address type');
+  }
 }
 
 export function getStakeFromAny(address: string): string | null {
   // Todo - make this support address being a CSL address object
-  const Address = validAddress(address);
-  if (!Address) return null;
-  if (CSL.BaseAddress.from_address(Address)) {
-    return getStake(Address.to_bech32());
-  } else if (CSL.RewardAddress.from_address(Address)) {
-    return Address.to_bech32().toLowerCase();
-  }
-  return null;
+  const Addr = getStake(address);
+  if (!Addr) return null;
+  return Addr.toString().toLowerCase();
 }
 
-export function getBaseAddress(payment: string, stake: string) {
+export function getBaseAddress(payment: string, stake: string):string {
   ensureInit();
-  return CSL.BaseAddress.new(
-    _networkId || 0,
-    CSL.StakeCredential.from_keyhash(CSL.Ed25519KeyHash.from_hex(payment)),
-    CSL.StakeCredential.from_keyhash(CSL.Ed25519KeyHash.from_hex(stake)),
-  )
-    .to_address()
-    .to_bech32();
+  return new Address(_networkId === 1 ? 'mainnet':'testnet', new Credential(CredentialType.KeyHash,new Hash28(payment)), new StakeCredentials("stakeKey",new Hash28(stake))).toString().toLowerCase();
 }
 
+/*
 export function validAddress(address: string) {
   try {
     return CSL.Address.from_bech32(address);
@@ -1156,27 +1152,66 @@ export function validAddress(address: string) {
 
   return;
 }
+//*/
 
+export function validAddress(address: string | byte[]):StakeAddress | Address { 
+  let ret=null;
+  if (typeof address == 'string') { 
+    try { 
+      ret = Address.fromString(address);
+    } catch (e) {}
+    try { 
+    if (!ret) ret = StakeAddress.fromString(address);
+    } catch (e) {}
+  }
+  try { 
+    if (!ret) ret = Address.fromBytes(address);
+  } catch (e) {} 
+  try { 
+    if (!ret) ret = StakeAddress.fromBytes(address);
+  } catch (e) {}
+  if (!ret) throw new Error('Invalid address: '+address);
+  return ret;
+}
+
+/*
 export function validBech32Address(address: string) {
   try {
     return CSL.Address.from_bech32(address);
   } catch (e) {}
   return;
 }
+//*/
+export function validBech32Address(address: string):StakeAddress | Address { 
+  if (!isBech32(address)) throw new Error('Invalid bech32 address');
+  return validAddress(address);
+}
 
-export function addressType(address: string) {
-  const Address = validAddress(address);
-  if (!Address) return;
-
-  if (CSL.BaseAddress.from_address(Address)) {
-    return 'Base';
-  } else if (CSL.EnterpriseAddress.from_address(Address)) {
-    return 'Enterprise';
-  } else if (CSL.RewardAddress.from_address(Address)) {
-    return 'Stake';
+export function addressType(address: string | Address | StakeAddress): "Base"|"Pointer"|"Enterprise"|"Bootstrap"|"Stake" {
+  let Addr;
+  if (typeof address == 'string') {
+    Addr = validAddress(address);
+  } else { 
+    Addr=address;
   }
-
-  return;
+  if (Addr instanceof Address) { 
+    switch (Addr.type) { 
+      case "base":
+        return "Base";
+      case "pointer":
+        return "Pointer";
+      case "enterprise":
+        return "Enterprise";
+      case "bootstrap":
+        return "Bootstrap";
+        default:
+          throw new Error('Invalid Address type: '+Addr.type);
+    }
+  } else if (Addr instanceof StakeAddress) { 
+    return 'Stake';
+  } else { 
+    throw new Error('Invalid address type');
+  }
 }
 
 export const labelIsCIP68 = (label: number) => {
