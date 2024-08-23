@@ -14,7 +14,7 @@ let ARWEAVE_GATEWAY: string | null = null;
 let _redis: RedisClientType | null = null;
 let _redisPrefix: string = '';
 let _redisTTL: number = 3600;
-let _getTimeout: number = 2000;
+let _getTimeout: number = 120000;
 import pJSON from '../package.json';
 import multihash from 'multihashes';
 
@@ -26,7 +26,7 @@ export const init = (
   redis: RedisClientType | null = null,
   redisPrefix: string = 'cip54:',
   redisTTL: number = 3600,
-  getTimeout: number = 2000,
+  getTimeout: number = 120000,
 ) => {
   _networkId = networkId === 'testnet' ? 0 : 1;
   _pgClient = connection;
