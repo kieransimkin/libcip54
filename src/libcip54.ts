@@ -13,6 +13,7 @@ let ARWEAVE_GATEWAY: string | null = null;
 let _redis: RedisClientType | null = null;
 let _redisPrefix: string = '';
 let _redisTTL: number = 3600;
+let _getTimeout: number = 2000;
 import pJSON from '../package.json';
 import multihash from 'multihashes';
 
@@ -24,6 +25,7 @@ export const init = (
   redis: RedisClientType | null = null,
   redisPrefix: string = 'cip54:',
   redisTTL: number = 3600,
+  getTimeout: number = 2000
 ) => {
   _networkId = networkId === 'testnet' ? 0 : 1;
   _pgClient = connection;
@@ -32,11 +34,20 @@ export const init = (
   _redis = redis;
   _redisPrefix = redisPrefix;
   _redisTTL = redisTTL;
+  _getTimeout = getTimeout;
 };
 
 const ensureInit = () => {
   if (!_pgClient || !_networkId) throw new Error('Libcip54 error - please initialize before use');
 };
+
+export const queryGetTimeout = ():number => { 
+  return _getTimeout;
+}
+
+export const setGetTimeout = (ms: number = 2000) => { 
+  _getTimeout = ms;
+}
 
 const checkCache = async (name: string) => {
   if (!_redis) return null;
