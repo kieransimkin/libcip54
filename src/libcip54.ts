@@ -17,6 +17,28 @@ let _getTimeout: number = 2000;
 import pJSON from '../package.json';
 import multihash from 'multihashes';
 
+/**
+ * @description Initializes various parameters and sets up connections for a application.
+ * It takes several arguments, including network ID, PostgreSQL client, IPFS gateway,
+ * Arweave gateway, Redis client, and other settings. The function assigns these
+ * values to corresponding properties, setting up the application's environment.
+ *
+ * @param {'mainnet' | 'testnet'} networkId - Used to determine the network environment.
+ *
+ * @param {pgCon.Client} connection - Used to establish a PostgreSQL connection.
+ *
+ * @param {string | null} ipfsGateway - Used for IPFS gateway configuration.
+ *
+ * @param {string | null} arweaveGateway - Used to set an Arweave gateway.
+ *
+ * @param {RedisClientType | null} redis - Used to connect to Redis.
+ *
+ * @param {string} redisPrefix - Used to prefix keys in Redis.
+ *
+ * @param {number} redisTTL - Used to set the time-to-live for data stored in Redis.
+ *
+ * @param {number} getTimeout - Used to set the timeout for getting data.
+ */
 export const init = (
   networkId: 'mainnet' | 'testnet',
   connection: pgCon.Client,
@@ -37,18 +59,47 @@ export const init = (
   _getTimeout = getTimeout;
 };
 
+/**
+ * @description Checks whether `_pgClient` and `_networkId` are initialized. If not,
+ * it throws an error with a specific message indicating that the library must be
+ * initialized before use.
+ */
 const ensureInit = () => {
   if (!_pgClient || !_networkId) throw new Error('Libcip54 error - please initialize before use');
 };
 
+/**
+ * @description Retrieves a predefined timeout value `_getTimeout` and returns it as
+ * a number, exporting the result.
+ *
+ * @returns {number} `_getTimeout`.
+ */
 export const queryGetTimeout = ():number => { 
   return _getTimeout;
 }
 
+/**
+ * @description Sets a global variable `_getTimeout` to a specified time interval
+ * (default is 2000ms). The function takes an optional argument `ms`, which overrides
+ * the default timeout value, and assigns it to the `_getTimeout` variable for
+ * subsequent use.
+ *
+ * @param {number} ms - Intended to represent time interval.
+ */
 export const setGetTimeout = (ms: number = 2000) => { 
   _getTimeout = ms;
 }
 
+/**
+ * @description Retrieves a value from Redis cache based on the provided `name`. If
+ * no cache is found or Redis connection is not established, it returns null. Otherwise,
+ * it parses the cached JSON data and returns it.
+ *
+ * @param {string} name - Used to identify cached data.
+ *
+ * @returns {object} Parsed from a JSON string retrieved from Redis storage. If no
+ * cache exists for the given name or Redis connection fails, it returns null.
+ */
 const checkCache = async (name: string) => {
   if (!_redis) return null;
   let cache: any = await _redis.get(_redisPrefix + ':' + name);
@@ -57,11 +108,30 @@ const checkCache = async (name: string) => {
   return cache;
 };
 
+/**
+ * @description Asynchronously caches data with a specified time-to-live (TTL) using
+ * Redis. It sets a key-value pair in Redis with the provided name and data, serialized
+ * to JSON, and expires after the specified TTL or uses a default TTL if none is provided.
+ *
+ * @param {string} name - Used to identify the cache entry.
+ *
+ * @param {any} data - Expected to hold cache data as JSON string.
+ */
 const doCache = async (name: string, data: any, ttl?: number) => {
   if (!_redis) return;
   await _redis.setEx(_redisPrefix + ':' + name, ttl ? ttl : _redisTTL, JSON.stringify(data));
 };
 
+/**
+ * @description Retrieves JSON data from a given URL. If Redis is available, it first
+ * checks if the cache contains the requested data; if so, it returns the cached
+ * result. Otherwise, it fetches and caches the data for future use.
+ *
+ * @param {string} url - Required to fetch JSON data from an API endpoint.
+ *
+ * @returns {object} Parsed JSON from the URL provided as an argument if it is fetched
+ * directly; otherwise, a cached result.
+ */
 const fetchCachedJson = async (url: string) => {
   if (!_redis) {
     const r = await fetch(url);
@@ -77,6 +147,16 @@ const fetchCachedJson = async (url: string) => {
   return json;
 };
 
+/**
+ * @description Asynchronously fetches a blob from a given URL. It first checks if
+ * Redis cache is available. If not, it directly fetches the blob and returns it. If
+ * Redis is available, it attempts to retrieve the cached blob. If found, it returns
+ * the cached blob; otherwise, it fetches, caches, and returns the blob.
+ *
+ * @param {string} url - Required for fetching a blob from the specified URL.
+ *
+ * @returns {Blob} A binary data object that contains the data of the requested URL.
+ */
 const fetchCachedBlob = async (url: string) => {
   if (!_redis) {
     const r = await fetch(url);
@@ -97,6 +177,20 @@ const fetchCachedBlob = async (url: string) => {
   return blob;
 };
 
+/**
+ * @description Retrieves a collection of transactions based on a feature tree and
+ * wallet address. It iterates over the transaction list, resolves stake addresses,
+ * fetches transactions from each stake, and aggregates them into an object for return.
+ *
+ * @param {{ transactions: string[] | string }} featureTree - Used to hold the list
+ * of transactions.
+ *
+ * @param {string} walletAddr - Used to represent the wallet address.
+ *
+ * @returns {Promise<object>} An object that contains a set of transactions retrieved
+ * from different stakes, where each key in the object represents a stake address and
+ * its corresponding value is an array of transactions associated with that stake.
+ */
 export async function getTransactions(
   featureTree: { transactions: string[] | string },
   walletAddr: string,
@@ -121,6 +215,20 @@ export async function getTransactions(
 }
 
 // Todo - detect full addresses rather than stake addresses and do a slightly different query for them
+/**
+ * @description Retrieves a list of transactions from a specified stake address,
+ * filtered by valid contracts and stake view. It fetches data from the PostgreSQL
+ * database, aggregates it, caches results for future use, and returns up to 20
+ * transactions per page.
+ *
+ * @param {string} stakeAddress - Used to filter transactions by stake address.
+ *
+ * @param {number} page - Used to specify the page number for pagination.
+ *
+ * @returns {Promise<any>} An array of objects containing various transaction data,
+ * including hash, out_sum, fee, deposit, size, invalid_before, and more. Each object
+ * represents a single transaction.
+ */
 export async function getTransactionsFromStake(stakeAddress: string, page: number = 0): Promise<any> {
   ensureInit();
   if (!_pgClient) return [];
@@ -207,6 +315,16 @@ OFFSET $2
   return txs;
 }
 
+/**
+ * @description Retrieves and processes a unique identifier (handle) associated with
+ * a given wallet address from a PostgreSQL database, ensuring cache validity and
+ * handling potential errors.
+ *
+ * @param {string} walletAddr - The wallet address to retrieve Ada handle for.
+ *
+ * @returns {Promise<object | null>} Either an object representing a handle if found,
+ * or null if not found.
+ */
 export async function getAdaHandleFromAddress(walletAddr: string): Promise<object | null> {
   ensureInit();
   if (!_pgClient) return [];
@@ -244,6 +362,19 @@ export async function getAdaHandleFromAddress(walletAddr: string): Promise<objec
   }
 }
 
+/**
+ * @description Retrieves tokens associated with a wallet address or stake addresses,
+ * based on input data from a feature tree. It iterates over the token list, extracts
+ * stake addresses, and calls another function to obtain tokens from each stake
+ * address, returning the results as an object.
+ *
+ * @param {{ tokens: string[] | string }} featureTree - Required for token retrieval.
+ *
+ * @param {string} walletAddr - Used to replace 'own' stake addresses with wallet addresses.
+ *
+ * @returns {Promise<object>} An object that contains key-value pairs where keys are
+ * stake addresses and values are arrays of tokens associated with those stakes.
+ */
 export async function getTokens(featureTree: { tokens: string[] | string }, walletAddr: string): Promise<object> {
   const ret: any = {};
   let tokens = featureTree.tokens;
@@ -266,6 +397,19 @@ export async function getTokens(featureTree: { tokens: string[] | string }, wall
 
 // Todo - detect full addresses rather than stake addresses and do a slightly different query for them
 
+/**
+ * @description Retrieves tokens from a given address. It first tries to find a stake
+ * address using the `getStakeFromAny` function and then calls `getTokensFromStake`
+ * with the obtained stake address and page number, returning an array of tokens or
+ * null if no stake is found.
+ *
+ * @param {string} address - Required for processing tokens from any address.
+ *
+ * @param {number} page - Used to specify a page number for pagination.
+ *
+ * @returns {Promise<{ unit: string; quantity: number }[] | null>} Either an array
+ * of objects with properties 'unit' and 'quantity', or null if no tokens are found.
+ */
 export async function getTokensFromAny(
   address: string,
   page: number = 0,
@@ -279,6 +423,21 @@ export async function getTokensFromAny(
   return null;
 }
 
+/**
+ * @description Retrieves tokens staked at a given address from a PostgreSQL database.
+ * It returns an array of objects containing the token unit and quantity. The function
+ * also caches its results for efficiency.
+ *
+ * @param {string} stakeAddress - Used to identify a specific stake address for token
+ * retrieval.
+ *
+ * @param {number} page - Used to specify the page number for pagination.
+ *
+ * @param {boolean} policies - Used to filter or group the token data based on policies.
+ *
+ * @returns {Promise<{ unit: string; quantity: number }[]>} An array of objects
+ * containing a unit and a quantity.
+ */
 export async function getTokensFromStake(
   stakeAddress: string,
   page: number = 0,
@@ -318,6 +477,19 @@ export async function getTokensFromStake(
   return assets;
 }
 
+/**
+ * @description Retrieves a list of unique policies associated with a specified stake
+ * address from the blockchain, returning an array of objects containing 'unit' and
+ * 'quantity'. It utilizes another asynchronous function `getTokensFromStake` to fetch
+ * the data.
+ *
+ * @param {string} stakeAddress - Required.
+ *
+ * @param {number} page - Used to specify pagination.
+ *
+ * @returns {Promise<{ unit: string; quantity: number }[]>} An array of objects
+ * containing 'unit' and 'quantity'.
+ */
 export async function getUniquePoliciesFromStake(
   stakeAddress: string,
   page: number = 0,
@@ -325,6 +497,19 @@ export async function getUniquePoliciesFromStake(
   return await getTokensFromStake(stakeAddress, page, true);
 }
 
+/**
+ * @description Retrieves a list of tokens from the PostgreSQL database based on a
+ * given policy ID and optional page number. It also checks for cached results, updates
+ * the cache if necessary, and returns the result set.
+ *
+ * @param {string} policyId - Used to filter tokens by policy.
+ *
+ * @param {number} page - Used to paginate the result set.
+ *
+ * @returns {Promise<any>} A list of objects containing two properties: 'unit' and
+ * 'quantity', representing tokens from a specified policy, ordered by their total
+ * quantity in descending order.
+ */
 export async function getTokensFromPolicy(policyId: string, page: number = 0): Promise<any> {
   ensureInit();
   if (!_pgClient) return [];
@@ -349,6 +534,19 @@ ORDER BY sum(quantity) DESC
   return tokens;
 }
 
+/**
+ * @description Retrieves policy holders for a given policy ID(s), with optional
+ * pagination. It queries a PostgreSQL database, caches results to improve performance,
+ * and returns an array of objects containing the sum of quantity and stake address
+ * for each holder.
+ *
+ * @param {string | string[]} policyId - Used to filter policy holders.
+ *
+ * @param {number} page - Used to specify the page number for pagination.
+ *
+ * @returns {Promise<any>} An array of objects representing policy holders, containing
+ * fields 'quantity' and 'stake'.
+ */
 export async function getPolicyHolders(policyId: string | string[], page: number = 0): Promise<any> {
   ensureInit();
   if (!_pgClient) return [];
@@ -386,6 +584,18 @@ export async function getPolicyHolders(policyId: string | string[], page: number
   return holders;
 }
 
+/**
+ * @description Retrieves a list of token holders for a given unit, including their
+ * stake and total quantity of tokens held. It utilizes a Postgres database to fetch
+ * data from multiple tables, caching results to optimize performance.
+ *
+ * @param {string} unit - Used to filter token holders.
+ *
+ * @param {number} page - Used to specify the page of results to be retrieved.
+ *
+ * @returns {Promise<any>} An array of objects containing information about token
+ * holders, including their addresses, staked values, and total quantities.
+ */
 export async function getTokenHolders(unit: string, page: number = 0): Promise<any> {
   ensureInit();
   if (!_pgClient) return [];
@@ -416,6 +626,19 @@ export async function getTokenHolders(unit: string, page: number = 0): Promise<a
   return holders;
 }
 
+/**
+ * @description Retrieves a collection of Unspent Transaction Outputs (UTXOs) associated
+ * with a wallet address. It accepts a feature tree object and a wallet address, then
+ * iterates through the UTXO array, fetching UTXOs from each stake address, and returns
+ * them in an object.
+ *
+ * @param {{ utxos: string[] | string }} featureTree - An object containing UTXO data.
+ *
+ * @param {string} walletAddr - Used as the stake address when `utxos` contains 'own'.
+ *
+ * @returns {Promise<any>} An object where each key corresponds to a stake address
+ * and its corresponding value is an array of utxos associated with that stake address.
+ */
 export async function getUTXOs(featureTree: { utxos: string[] | string }, walletAddr: string): Promise<any> {
   const ret: any = {};
   let utxos = featureTree.utxos;
@@ -437,6 +660,27 @@ export async function getUTXOs(featureTree: { utxos: string[] | string }, wallet
 }
 
 // Todo - detect full addresses rather than stake addresses and do a slightly different query for them
+/**
+ * @description Retrieves Unspent Transaction Outputs (UTXOs) associated with a
+ * specified stake address from a database using a client object. It returns an array
+ * of objects containing UTXO details, including transaction hash, index, and value,
+ * along with optional multiasset information and datum data.
+ *
+ * @param {string} stakeAddress - Required for obtaining UTXOs from a stake address.
+ *
+ * @param {number} page - Used to specify a page number for pagination.
+ *
+ * @returns {Promise<
+ *   {
+ *     txHash: string;
+ *     index: number;
+ *     address: string;
+ *     value: number;
+ *     multiasset: { quantity: number; unit: string }[];
+ *     datum: any | null;
+ *   }[]
+ * >} An array of objects containing UTXO data.
+ */
 export async function getUTXOsFromStake(
   stakeAddress: string,
   page: number = 0,
@@ -456,6 +700,28 @@ export async function getUTXOsFromStake(
   return await getUTXOsFromEither(stakeAddress, null, page);
 }
 
+/**
+ * @description Retrieves unspent transaction outputs (UTXOs) from a given base
+ * address, paginated by optional `page` parameter. It returns an array of objects
+ * containing UTXO details. If the database connection is not established, it returns
+ * an empty array.
+ *
+ * @param {string} baseAddress - Used as an input for retrieving UTXOs.
+ *
+ * @param {number} page - Used to specify pagination for retrieving UTXOs.
+ *
+ * @returns {Promise<
+ *   {
+ *     txHash: string;
+ *     index: number;
+ *     address: string;
+ *     value: number;
+ *     multiasset: { quantity: number; unit: string }[];
+ *     datum: any | null;
+ *   }[]
+ * >} An array of objects containing data about UTXOs (Unspent Transaction Outputs)
+ * that match the provided base address.
+ */
 export async function getUTXOsFromAddr(
   baseAddress: string,
   page: number = 0,
@@ -475,6 +741,29 @@ export async function getUTXOsFromAddr(
   return await getUTXOsFromEither(null, baseAddress, page);
 }
 
+/**
+ * @description Retrieves a list of unspent transaction outputs (UTXOs) from either
+ * a stake address or a base address, depending on input parameters. It caches results
+ * and returns a promise with an array of UTXO objects containing details such as
+ * txHash, index, value, and more.
+ *
+ * @param {string | null} stakeAddress - Used to filter UTXOs by stake address.
+ *
+ * @param {string | null} baseAddress - Optional.
+ *
+ * @param {number} page - Used for pagination purposes.
+ *
+ * @returns {Promise<
+ *   {
+ *     txHash: string;
+ *     index: number;
+ *     address: string;
+ *     value: number;
+ *     multiasset: { quantity: number; unit: string }[];
+ *     datum: any | null;
+ *   }[]
+ * >} An array of objects containing information about UTXOs.
+ */
 export async function getUTXOsFromEither(
   stakeAddress: string | null,
   baseAddress: string | null,
@@ -534,6 +823,19 @@ export async function getUTXOsFromEither(
   return utres;
 }
 
+/**
+ * @description Retrieves libraries and their associated CSS files from a CDN, filters
+ * out unwanted files, converts binary responses to text, and returns an object
+ * containing arrays of JavaScript and CSS library sources.
+ *
+ * @param {{
+ *   libraries: { name: string; version: string }[];
+ * }} featureTree - Used to specify a tree-like structure containing library metadata.
+ *
+ * @returns {Promise<{ libraries: string[]; css: string[] }>} An object containing
+ * two properties: `libraries` and `css`, both being arrays of strings representing
+ * URLs of JavaScript and CSS files respectively.
+ */
 export async function getLibraries(featureTree: {
   libraries: { name: string; version: string }[];
 }): Promise<{ libraries: string[]; css: string[] }> {
@@ -571,6 +873,17 @@ export async function getLibraries(featureTree: {
   return ret;
 }
 
+/**
+ * @description Retrieves metadata for a given unit, which is a string representing
+ * an NFT or token. It checks if the label conforms to CIP-68 and fetches data from
+ * either mint transactions or CIP-68 metadata sources based on the label's format.
+ *
+ * @param {string} unit - Required for retrieving metadata.
+ *
+ * @returns {Promise<any>} Null when no valid metadata can be retrieved, otherwise
+ * it returns a JSON object containing NFT metadata if the NFT has CIP-68 policy, or
+ * the metadata from a specific CIP-68 label if the NFT has a CIP-68 label.
+ */
 export const getMetadata = async (unit: string): Promise<any> => {
   if (!unit || unit.length < 1) return null;
   const { label, name, policyId, assetName } = fromUnit(unit);
@@ -596,6 +909,16 @@ export const getMetadata = async (unit: string): Promise<any> => {
   return metadata;
 };
 
+/**
+ * @description Retrieves the metadata and transaction hash for a given unit from a
+ * PostgreSQL database, caching the result to avoid subsequent database queries if
+ * the same unit is requested again.
+ *
+ * @param {string} unit - 112 characters long.
+ *
+ * @returns {Promise<{ txHash: string; metadata: { key: string; json: object }[] } |
+ * null>} Either an object with a txHash and an array of metadata objects or null.
+ */
 export const getMintTx = async (
   unit: string,
 ): Promise<{ txHash: string; metadata: { key: string; json: object }[] } | null> => {
@@ -640,6 +963,16 @@ export const getMintTx = async (
   return mintTx.rows[0];
 };
 
+/**
+ * @description Retrieves metadata for a given unit from a PostgreSQL database using
+ * a SQL query, parses CBOR-encoded JSON data, and caches the result for future use.
+ * It returns the parsed metadata if successful or null if no data is found.
+ *
+ * @param {string} unit - 64 characters long, representing a contract unit.
+ *
+ * @returns {Promise<any>} Either an object containing metadata, null if the query
+ * did not find any data, false in case of a catch block error.
+ */
 export const getCIP68Metadata = async (unit: string): Promise<any> => {
   ensureInit();
   if (!_pgClient) return [];
@@ -669,6 +1002,17 @@ export const getCIP68Metadata = async (unit: string): Promise<any> => {
 
     if (!datum) return null;
 
+    /**
+     * @description Recursively parses a CBOR (Concise Binary Object Representation) list
+     * into a JSON array. It handles nested lists, maps, and bytes, converting them to
+     * corresponding JSON structures. The input is expected to be an array of objects
+     * with properties map, bytes, or list.
+     *
+     * @param {any} list - Expected to be an array.
+     *
+     * @returns {any} An array. The array contains elements that are either JSON objects,
+     * strings, or arrays themselves.
+     */
     const parseCborJsonList = (list: any): any => {
       const ret = [];
       for (const item of list) {
@@ -685,6 +1029,18 @@ export const getCIP68Metadata = async (unit: string): Promise<any> => {
       return ret;
     };
 
+    /**
+     * @description Converts a CBOR (Concise Binary Object Representation) map into a
+     * JavaScript object (JSON). It recursively traverses the CBOR data, extracting values
+     * and converting them to JSON-compatible types (string, array, or another object),
+     * then stores them in a new object with keys derived from the original CBOR map's
+     * key bytes.
+     *
+     * @param {any} map - Expected to be an object containing CBOR data.
+     *
+     * @returns {any} An object containing key-value pairs where keys are strings and
+     * values can be strings, arrays or objects.
+     */
     const parseCborJsonMap = (map: any): any => {
       const ret: any = {};
       for (const field of map) {
@@ -720,6 +1076,16 @@ export const getCIP68Metadata = async (unit: string): Promise<any> => {
     return false;
   }
 };
+/**
+ * @description Retrieves a list of file metadata and sources from the server, processes
+ * the data, and returns an array of objects containing file source URLs, media types,
+ * and additional properties.
+ *
+ * @param {string} unit - Required for processing files.
+ *
+ * @returns {Promise<{ src: string; mediaType: string }[]>} An array of objects
+ * containing source strings and media types for files.
+ */
 export const getFiles = async (
   unit: string,
   metadata?: any,
@@ -777,6 +1143,17 @@ export const getFiles = async (
   }
   return files;
 };
+/**
+ * @description Converts a given blob into a URL-encoded data URL, which can be used
+ * to display the blob's contents as an image or other media type. It extracts the
+ * MIME type from the blob and combines it with the encoded buffer data to form the
+ * data URL.
+ *
+ * @param {Blob} blob - Expected as input to generate URL-encoded data from.
+ *
+ * @returns {string} A URL-encoded data URI representing the input blob as a
+ * base64-encoded binary data.
+ */
 export const getURLEncodedDataURLFromBlob = async (blob: Blob) => {
   const ab = await blob.arrayBuffer();
   const ia = new Uint8Array(ab);
@@ -785,11 +1162,38 @@ export const getURLEncodedDataURLFromBlob = async (blob: Blob) => {
   const fileSrc = 'data:' + mType + ',' + encodeURIComponent(tresult);
   return fileSrc;
 };
+/**
+ * @description Converts a Blob object into a data URL. It achieves this by first
+ * converting the Blob to an ArrayBuffer, then extracting the MIME type from the
+ * Blob's type attribute. The ArrayBuffer is then converted to a base64-encoded string
+ * and prepended with the appropriate 'data:' scheme.
+ *
+ * @param {Blob} blob - Expected to hold binary data.
+ *
+ * @returns {Promise<string>} A data URL that represents the given blob as a base64
+ * encoded string prefixed with 'data:', followed by the MIME type and ';base64,'.
+ */
 export const getDataURLFromBlob = async (blob: Blob): Promise<string> => {
   const arrayBuf = await blob.arrayBuffer();
   const mType = blob.type.split(';')[0];
   return 'data:' + mType + ';base64,' + Buffer.from(arrayBuf).toString('base64'); // Currently not using the function above because I have no prob
 };
+/**
+ * @description Retrieves an array of files based on input parameters such as a unit,
+ * files, and metadata. It recursively fetches files from various sources, handles
+ * file types, and returns a promise with the retrieved files grouped by unit and any
+ * encountered errors.
+ *
+ * @param {string} unit - Used to group files together.
+ *
+ * @param {({ src?: string; mediaType?: string; id?: string | number } | string)[]}
+ * files - An array of file objects or strings representing files to retrieve.
+ *
+ * @param {any} metadata - Used to store metadata for the files being retrieved.
+ *
+ * @returns {Promise<any>} An object (result) that contains arrays of files for each
+ * unit, and possibly error messages in case of any errors during file retrieval.
+ */
 export const getFilesFromArray = async (
   unit: string,
   files: ({ src?: string; mediaType?: string; id?: string | number } | string)[],
@@ -853,6 +1257,20 @@ export const getFilesFromArray = async (
   }
   return result;
 };
+/**
+ * @description Retrieves a file from various sources such as IPFS, ARWEAVE, and HTTP
+ * URLs, converts it to a buffer, determines the media type if not provided, and
+ * returns the result as a promise with an object containing the buffer, media type,
+ * id, unit, and props.
+ *
+ * @param {string} src - The source URL to fetch a file from.
+ *
+ * @param {string} mediaType - Used to specify the expected media type of the file.
+ *
+ * @returns {Promise<{ buffer: any; mediaType: string; id?: string | number; unit?:
+ * string; props?: any }>} An object with properties buffer (any), mediaType (string),
+ * and optionally id, unit, and props.
+ */
 export const getFileFromSrc = async (
   src: string,
   mediaType: string,
@@ -944,6 +1362,22 @@ export const getFileFromSrc = async (
   return result;
 };
 
+/**
+ * @description Retrieves a file by its ID and metadata for a specified unit, such
+ * as "own" or token metadata. It attempts to find the file through various methods,
+ * including filtering arrays and converting IDs to integers. If not found, it throws
+ * an error.
+ *
+ * @param {string} unit - Optional.
+ *
+ * @param {string | number | null} id - Used to identify the file.
+ *
+ * @param {any | null} metadata - Optional.
+ *
+ * @returns {Promise<{ buffer: any; mediaType: string; props?: any; unit?: string;
+ * id?: string; src?: string }>} An object containing a file's buffer, media type,
+ * optional properties, and source information.
+ */
 export const getFile = async (
   unit: string,
   id: string | number | null,
@@ -1014,6 +1448,19 @@ export const getFile = async (
   if (!result.id) result.id = id;
   return result;
 };
+/**
+ * @description Retrieves a list of unique addresses associated with a specific unit,
+ * along with their corresponding quantities. It checks for cached results first and
+ * fetches data from PostgreSQL if necessary. The result is sorted by quantity in
+ * descending order and paginated.
+ *
+ * @param {string} unit - Used to identify an asset or token.
+ *
+ * @param {number} count - Used to specify the number of addresses to return.
+ *
+ * @returns {Promise<{ address: string; quantity: number }[]>} An array of objects
+ * containing a "address" property and a "quantity" property.
+ */
 export const getAddresses = async (
   unit: string,
   count: number = 10,
@@ -1050,6 +1497,30 @@ export const getAddresses = async (
   // Alternatively you can get this data from BF:
   // addresses = await Blockfrost.API.assetsAddresses(unit);
 };
+/**
+ * @description Retrieves and aggregates various data from a feature tree, including
+ * libraries, tokens, UTXOs, transactions, and files, based on provided metadata and
+ * wallet address. It returns a structured object containing the aggregated data.
+ *
+ * @param {{
+ *     libraries: { name: string; version: string }[];
+ *     tokens: string[] | string;
+ *     utxos: string[] | string;
+ *     transactions: string[] | string;
+ *     mintTx?: boolean;
+ *     files?: boolean | string | ({ src?: string; mediaType?: string } | string)[];
+ *   }} featureTree - Used to fetch various features or data.
+ *
+ * @param {any} metadata - Unused in the code provided.
+ *
+ * @param {string} walletAddr - Intended to hold a wallet address.
+ *
+ * @param {string} tokenUnit - Used to specify the unit of the token.
+ *
+ * @returns {object} A structured data set containing various information such as
+ * libraries, tokens, utxos, transactions, and files. This object also includes
+ * metadata like timestamp, owner address, token unit, and version.
+ */
 export const getSmartImports = async (
   featureTree: {
     libraries: { name: string; version: string }[];
@@ -1107,6 +1578,16 @@ export const getSmartImports = async (
 
 // Util functions
 
+/**
+ * @description Takes a base address as input and returns the corresponding stake
+ * address in lowercase bech32 format, or null if the provided base address is invalid.
+ * It uses the CSL library to parse the base address and create a new reward address.
+ *
+ * @param {string} baseAddress - Necessary for the function's operation.
+ *
+ * @returns {string | null} Either a lower-case Bech32-encoded string representing a
+ * stake address or null if no valid base address was provided.
+ */
 export function getStake(baseAddress: string): string | null {
   const address = CSL.BaseAddress.from_address(CSL.Address.from_bech32(baseAddress));
   if (!address) return null;
@@ -1117,6 +1598,17 @@ export function getStake(baseAddress: string): string | null {
     .toLowerCase();
 }
 
+/**
+ * @description Retrieves a stake value from an address and returns it as a string
+ * or null if the address is invalid, CSL BaseAddress, or RewardAddress. It calls
+ * helper functions to parse the address, check its type, and convert it to Bech32
+ * format for retrieval of the stake.
+ *
+ * @param {string} address - Required to retrieve stake information.
+ *
+ * @returns {string | null} Either a lowercase string representing a reward address
+ * or null if the input cannot be converted to a valid stake.
+ */
 export function getStakeFromAny(address: string): string | null {
   // Todo - make this support address being a CSL address object
   const Address = validAddress(address);
@@ -1129,6 +1621,18 @@ export function getStakeFromAny(address: string): string | null {
   return null;
 }
 
+/**
+ * @description Generates a base address for a stake by creating a new `CSL.BaseAddress`
+ * instance using the network ID, payment keyhash, and stake keyhash. It then converts
+ * the address to bech32 format and returns it.
+ *
+ * @param {string} payment - Used to create a stake credential.
+ *
+ * @param {string} stake - Used to create stake credentials.
+ *
+ * @returns {string} A Bech32-encoded base address derived from the input network ID
+ * and stake credentials.
+ */
 export function getBaseAddress(payment: string, stake: string) {
   ensureInit();
   return CSL.BaseAddress.new(
@@ -1140,6 +1644,16 @@ export function getBaseAddress(payment: string, stake: string) {
     .to_bech32();
 }
 
+/**
+ * @description Takes a string as input, attempts to convert it into a valid
+ * cryptocurrency address using two methods: Bech32 and hexadecimal, and returns the
+ * converted address if successful; otherwise, it does not return any value.
+ *
+ * @param {string} address - An input to be validated.
+ *
+ * @returns {CSL.Address | undefined} Either a successfully parsed address object
+ * from Bech32 or hex format or undefined if parsing fails for both formats.
+ */
 export function validAddress(address: string) {
   try {
     return CSL.Address.from_bech32(address);
@@ -1152,6 +1666,18 @@ export function validAddress(address: string) {
   return;
 }
 
+/**
+ * @description Attempts to convert a given address from Bech32 format into a valid
+ * CSW Address using the `CSL.Address.from_bech32` method. If successful, it returns
+ * the converted address; otherwise, it catches and ignores any exceptions, returning
+ * undefined.
+ *
+ * @param {string} address - Expected to be a Bech32 encoded address.
+ *
+ * @returns {boolean | undefined} True if a valid Bech32 address is provided and false
+ * otherwise, or it returns undefined if an error occurs while processing the input
+ * string.
+ */
 export function validBech32Address(address: string) {
   try {
     return CSL.Address.from_bech32(address);
@@ -1159,6 +1685,17 @@ export function validBech32Address(address: string) {
   return;
 }
 
+/**
+ * @description Determines the type of a given cryptocurrency address based on its
+ * validity and matches it with a specific class from the CSL namespace. It returns
+ * 'Base', 'Enterprise', or 'Stake' accordingly, or returns without a value if the
+ * address is invalid.
+ *
+ * @param {string} address - Input address to be validated.
+ *
+ * @returns {string} Either 'Base', 'Enterprise' or 'Stake'. If the input address
+ * does not match any of these types, the function returns nothing (void).
+ */
 export function addressType(address: string) {
   const Address = validAddress(address);
   if (!Address) return;
@@ -1174,6 +1711,16 @@ export function addressType(address: string) {
   return;
 }
 
+/**
+ * @description Checks whether a given `label` is equal to either `REFERENCE_TOKEN_LABEL`
+ * or `USER_TOKEN_LABEL`. If the `label` is not provided, it returns `false`. Otherwise,
+ * it returns a boolean indicating whether the `label` matches one of the expected values.
+ *
+ * @param {number} label - Expected to represent a label value.
+ *
+ * @returns {boolean} True if the label matches either `REFERENCE_TOKEN_LABEL` or
+ * `USER_TOKEN_LABEL`, and false otherwise.
+ */
 export const labelIsCIP68 = (label: number) => {
   if (!label) return false;
   return label === REFERENCE_TOKEN_LABEL || label === USER_TOKEN_LABEL;
@@ -1213,6 +1760,16 @@ export function fromUnit(unit: string): {
   })();
   return { policyId, assetName, name, label };
 }
+/**
+ * @description Converts a given number into a hexadecimal string representing a
+ * label, ensuring it falls within the range of 1 to 65535. It also calculates and
+ * appends a checksum for the label before returning the final result.
+ *
+ * @param {number} num - 16-bit integer value.
+ *
+ * @returns {string} 7 characters long and contains a formatted hexadecimal representation
+ * of the input number, followed by a checksum of that number, prefixed with '0'.
+ */
 export function toLabel(num: number): string {
   if (num < 0 || num > 65535) {
     throw new Error(`Label ${num} out of range: min label 1 - max label 65535.`);
@@ -1221,6 +1778,18 @@ export function toLabel(num: number): string {
   return '0' + numHex + checksum(numHex) + '0';
 }
 
+/**
+ * @description Converts a hexadecimal string into a numeric value if it meets certain
+ * conditions: its length is exactly 8, and the first and last characters are '0'.
+ * It calculates a checksum based on the first four characters and checks if it matches
+ * the provided value.
+ *
+ * @param {string} label - 8 characters long.
+ *
+ * @returns {number | null} 0 or a null value. The returned value will be a hexadecimal
+ * number if the provided label is valid and matches a specific pattern, otherwise
+ * it will be null.
+ */
 export function fromLabel(label: string): number | null {
   if (label.length !== 8 || !(label[0] === '0' && label[7] === '0')) {
     return null;
@@ -1236,6 +1805,15 @@ export function fromLabel(label: string): number | null {
 function checksum(num: string): string {
   return crc8(fromHex(num)).toString(16).padStart(2, '0');
 }
+/**
+ * @description Converts a hexadecimal-encoded string to a binary data array (Uint8Array)
+ * using Node.js' built-in `Buffer` class with the 'hex' encoding.
+ *
+ * @param {string} hex - Expected to be a hexadecimal string.
+ *
+ * @returns {Uint8Array} A buffer object holding an array of bytes, where each element
+ * of the array corresponds to eight bits in a binary number.
+ */
 export function fromHex(hex: string): Uint8Array {
   return Buffer.from(hex, 'hex');
 }
@@ -1262,6 +1840,18 @@ if (typeof Int32Array !== 'undefined') {
   TABLE = new Int32Array(TABLE);
 }
 
+/**
+ * @description Calculates the eight-bit cyclic redundancy check (CRC) value for a
+ * given byte array `current`. It uses a pre-defined lookup table `TABLE` and an
+ * initial value `previous`, updating the CRC with each byte in the array before
+ * returning the result.
+ *
+ * @param {Uint8Array} current - Used as input for CRC calculation.
+ *
+ * @param {number} previous - Used to initialize the CRC calculation.
+ *
+ * @returns {number} 8-bit cyclic redundancy check (CRC) of the input data.
+ */
 export function crc8(current: Uint8Array, previous = 0): number {
   let crc = ~~previous;
 
@@ -1272,16 +1862,37 @@ export function crc8(current: Uint8Array, previous = 0): number {
   return crc;
 }
 
+/**
+ * @description Converts a base64-encoded string to a Unicode-encoded string, which
+ * is suitable for use in URLs or as query parameters. It uses the `atob` function
+ * to decode the base64 string, then maps each character code to its corresponding
+ * Unicode-encoded format.
+ *
+ * @param {string} str - 64-bit encoded base string.
+ *
+ * @returns {string} The Unicode equivalent of the input base64-encoded string.
+ */
 export const base64ToUnicode = (str: string) => {
   return decodeURIComponent(
     atob(str)
       .split('')
       .map((c) => {
+        // Converts a character to hexadecimal URL encoding.
+
         return '%' + ('00' + c.charCodeAt(0).toString(16)).slice(-2);
       })
       .join(''),
   );
 };
+/**
+ * @description Converts a hexadecimal string to an ASCII string by parsing each pair
+ * of hexadecimal characters as a decimal number and using it to retrieve the
+ * corresponding ASCII character, which is then added to the resulting string.
+ *
+ * @param {string} str1 - Expected to contain hexadecimal data.
+ *
+ * @returns {string} The ASCII representation of a hexadecimal-encoded string.
+ */
 export function hexToAscii(str1: string) {
   const hex = str1.toString();
   let str = '';
@@ -1290,13 +1901,34 @@ export function hexToAscii(str1: string) {
   }
   return str;
 }
+/**
+ * @description Converts a given string from Unicode to Base64 format. It first encodes
+ * the input string using URI components, then replaces each byte sequence with its
+ * corresponding Unicode character representation, and finally applies Base64 encoding
+ * on the resulting string.
+ *
+ * @param {string} str - Input to be converted.
+ *
+ * @returns {string} A Base64-encoded representation of a Unicode character sequence.
+ */
 export function unicodeToBase64(str: string) {
   return btoa(
     encodeURIComponent(str).replace(/%([0-9A-F]{2})/g, function toSolidBytes(match, p1) {
+      // Converts hexadecimal byte values back to ASCII characters.
+
       return String.fromCharCode(Number('0x' + p1));
     }),
   );
 }
+/**
+ * @description Converts a given base64-encoded or UTF-8 encoded data URI into a plain
+ * string, handling both cases by checking the first part of the data URI for specific
+ * patterns and applying corresponding decoding methods.
+ *
+ * @param {string} dataURI - Data URL string that contains binary data.
+ *
+ * @returns {string} The decoded representation of a data URI.
+ */
 export const dataURItoString = (dataURI: string) => {
   let byteString = '';
   const [first, ...rest] = dataURI.split(',');
@@ -1316,6 +1948,16 @@ export const dataURItoString = (dataURI: string) => {
   // let mimeString = dataURI.split(',')[0].split(':')[1].split(';')[0] // Not needed but extracted anyway
   return byteString;
 };
+/**
+ * @description Converts a given string into its ASCII hexadecimal representation by
+ * iterating over each character, converting it to its Unicode code point using
+ * `charCodeAt`, and then formatting the result as a hexadecimal string.
+ *
+ * @param {string} str - Input to convert into hexadecimal.
+ *
+ * @returns {string} A concatenation of hexadecimal representations of ASCII characters
+ * in the input string.
+ */
 export function asciiToHex(str: string) {
   const arr1 = [];
   for (let n = 0, l = str.length; n < l; n++) {
