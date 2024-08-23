@@ -1,5 +1,6 @@
 import pgCon from 'pg';
 import axios from 'axios';
+import { AxiosRequestConfig, AxiosResponse } from 'axios';
 import punycode from 'punycode';
 import { RedisClientType } from 'redis';
 import * as CSL from '@emurgo/cardano-serialization-lib-nodejs';
@@ -25,7 +26,7 @@ export const init = (
   redis: RedisClientType | null = null,
   redisPrefix: string = 'cip54:',
   redisTTL: number = 3600,
-  getTimeout: number = 2000
+  getTimeout: number = 2000,
 ) => {
   _networkId = networkId === 'testnet' ? 0 : 1;
   _pgClient = connection;
@@ -37,17 +38,21 @@ export const init = (
   _getTimeout = getTimeout;
 };
 
+const axiosGet = async (url: string, config?: AxiosRequestConfig): Promise<AxiosResponse> => {
+  return await axios.get(url, { ...config, signal: AbortSignal.timeout(_getTimeout) });
+};
+
 const ensureInit = () => {
   if (!_pgClient || !_networkId) throw new Error('Libcip54 error - please initialize before use');
 };
 
-export const queryGetTimeout = ():number => { 
+export const queryGetTimeout = (): number => {
   return _getTimeout;
-}
+};
 
-export const setGetTimeout = (ms: number = 2000) => { 
+export const setGetTimeout = (ms: number = 2000) => {
   _getTimeout = ms;
-}
+};
 
 const checkCache = async (name: string) => {
   if (!_redis) return null;
@@ -872,7 +877,7 @@ export const getFileFromSrc = async (
     result.props = rresult.props;
     result.mediaType = rresult.mediaType;
   } else if (src.substring(0, 14) === 'ipfs://ipfs://') {
-    const res = await axios.get(IPFS_GATEWAY + src.substring(14), { responseType: 'arraybuffer' });
+    const res = await axiosGet(IPFS_GATEWAY + src.substring(14), { responseType: 'arraybuffer' });
     if (!result.mediaType) result.mediaType = res.headers['content-type'];
     result.buffer = res.data;
   } else if (
@@ -880,20 +885,20 @@ export const getFileFromSrc = async (
     src.substring(0, 12) === 'ipfs:ipfs://' ||
     src.substring(0, 12) === 'ipfs://ipfs/'
   ) {
-    const res = await axios.get(IPFS_GATEWAY + src.substring(12), { responseType: 'arraybuffer' });
+    const res = await axiosGet(IPFS_GATEWAY + src.substring(12), { responseType: 'arraybuffer' });
     if (!result.mediaType) result.mediaType = res.headers['content-type'];
     result.buffer = res.data;
   } else if (src.substring(0, 7) === 'ipfs://') {
-    const res = await axios.get(IPFS_GATEWAY + src.substring(7), { responseType: 'arraybuffer' });
+    const res = await axiosGet(IPFS_GATEWAY + src.substring(7), { responseType: 'arraybuffer' });
     if (!result.mediaType) result.mediaType = res.headers['content-type'];
     result.buffer = res.data;
     /*
   } else if (multihash.validate(Uint8Array.from(Buffer.from(src).alloc((46))))) {
-    const res = await axios.get(IPFS_GATEWAY + src, { responseType: 'arraybuffer' });
+    const res = await axiosGet(IPFS_GATEWAY + src, { responseType: 'arraybuffer' });
     if (!result.mediaType) result.mediaType = res.headers['content-type'];
     result.buffer = res.data;*/
   } else if (src.substring(0, 5) === 'ar://') {
-    const res = await axios.get(ARWEAVE_GATEWAY + src.substring(5), { responseType: 'arraybuffer' });
+    const res = await axiosGet(ARWEAVE_GATEWAY + src.substring(5), { responseType: 'arraybuffer' });
     if (!result.mediaType) result.mediaType = res.headers['content-type'];
     result.buffer = res.data;
   } else if (src.substring(0, 5) === 'data:') {
@@ -920,24 +925,24 @@ export const getFileFromSrc = async (
       }
     }
   } else if (src.substring(0, 8) === 'https://') {
-    const res = await axios.get(src, { responseType: 'arraybuffer' });
+    const res = await axiosGet(src, { responseType: 'arraybuffer' });
     if (!result.mediaType) result.mediaType = res.headers['content-type'];
     result.buffer = res.data;
   } else if (src.substring(0, 7) === 'http://') {
-    const res = await axios.get(src, { responseType: 'arraybuffer' });
+    const res = await axiosGet(src, { responseType: 'arraybuffer' });
     if (!result.mediaType) result.mediaType = res.headers['content-type'];
     result.buffer = res.data;
   } else if (src.substring(0, 5) === 'ipfs/') {
-    const res = await axios.get(IPFS_GATEWAY + src.substring(5), { responseType: 'arraybuffer' });
+    const res = await axiosGet(IPFS_GATEWAY + src.substring(5), { responseType: 'arraybuffer' });
     if (!result.mediaType) result.mediaType = res.headers['content-type'];
     result.buffer = res.data;
   } else if (src.substring(0, 6) === '/ipfs/') {
-    const res = await axios.get(IPFS_GATEWAY + src.substring(6), { responseType: 'arraybuffer' });
+    const res = await axiosGet(IPFS_GATEWAY + src.substring(6), { responseType: 'arraybuffer' });
     if (!result.mediaType) result.mediaType = res.headers['content-type'];
     result.buffer = res.data;
   } else if (src.length === 46) {
     // ipfs hash is 46 bytes long, sometimes people get confused
-    const res = await axios.get(IPFS_GATEWAY + src, { responseType: 'arraybuffer' });
+    const res = await axiosGet(IPFS_GATEWAY + src, { responseType: 'arraybuffer' });
     if (!result.mediaType) result.mediaType = res.headers['content-type'];
     result.buffer = res.data;
   }
@@ -1324,4 +1329,3 @@ export function asciiToHex(str: string) {
   }
   return arr1.join('');
 }
-
