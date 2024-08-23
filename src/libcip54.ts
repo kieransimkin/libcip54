@@ -39,7 +39,7 @@ export const init = (
 };
 
 const axiosGet = async (url: string, config?: AxiosRequestConfig): Promise<AxiosResponse> => {
-  return await axios.get(url, { ...config, signal: AbortSignal.timeout(_getTimeout) });
+  return await axios.get(url, { ...config, timeout: _getTimeout, signal: AbortSignal.timeout(_getTimeout) });
 };
 
 const ensureInit = () => {
