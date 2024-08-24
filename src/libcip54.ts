@@ -1125,12 +1125,10 @@ export function getStake(baseAddress: string): string | null {
   ensureInit();
   const Addr = validAddress(baseAddress);
   if (!Addr) return null;
-  if (Addr instanceof Address) {
-    return new StakeAddress(_networkId === 1 ? 'mainnet' : 'testnet', Addr.paymentCreds.hash).toString().toLowerCase();
-  } else if (Addr instanceof StakeAddress) {
-    return Addr.toString().toLowerCase();
+  if (!(Addr instanceof StakeAddress)) {
+    return new StakeAddress(_networkId === 1 ? 'mainnet' : 'testnet', Addr.paymentCreds.hash,"script").toString().toLowerCase();
   } else {
-    throw new Error('Invalid address type');
+    return Addr.toString().toLowerCase();
   }
 }
 
