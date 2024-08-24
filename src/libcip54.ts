@@ -1152,20 +1152,6 @@ export function getBaseAddress(payment: string, stake: string): string {
     .toLowerCase();
 }
 
-/*
-export function validAddress(address: string) {
-  try {
-    return CSL.Address.from_bech32(address);
-  } catch (e) {}
-
-  try {
-    return CSL.Address.from_hex(address);
-  } catch (e) {}
-
-  return;
-}
-//*/
-
 export function validAddress(address: string | byte[]): StakeAddress | Address {
   let ret = null;
   if (typeof address === 'string') {
@@ -1186,14 +1172,6 @@ export function validAddress(address: string | byte[]): StakeAddress | Address {
   return ret;
 }
 
-/*
-export function validBech32Address(address: string) {
-  try {
-    return CSL.Address.from_bech32(address);
-  } catch (e) {}
-  return;
-}
-//*/
 export function validBech32Address(address: string): StakeAddress | Address {
   if (!isBech32(address)) throw new Error('Invalid bech32 address');
   return validAddress(address);
