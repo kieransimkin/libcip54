@@ -1126,7 +1126,9 @@ export function getStake(baseAddress: string): string | null {
   const Addr = validAddress(baseAddress);
   if (!Addr) return null;
   if (!(Addr instanceof StakeAddress)) {
-    return new StakeAddress(_networkId === 1 ? 'mainnet' : 'testnet', Addr.paymentCreds.hash,"script").toString().toLowerCase();
+    return new StakeAddress(_networkId === 1 ? 'mainnet' : 'testnet', Addr.paymentCreds.hash, 'script')
+      .toString()
+      .toLowerCase();
   } else {
     return Addr.toString().toLowerCase();
   }
