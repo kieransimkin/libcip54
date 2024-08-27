@@ -36,7 +36,7 @@
   ],
   "dependencies": {
     "@harmoniclabs/bip32_ed25519": "^0.1.2",
-    "@harmoniclabs/cardano-ledger-ts": "^0.2.3",
+    "@harmoniclabs/cardano-ledger-ts": "github:kieransimkin/cardano-ledger-ts",
     "@harmoniclabs/cbor": "^1.3.0",
     "@harmoniclabs/crypto": "^0.2.4",
     "@harmoniclabs/pair": "^1.0.0",
