@@ -1171,12 +1171,12 @@ export function validAddress(address: string | byte[]): StakeAddress | Address {
   if (!ret) throw new Error('Invalid address: ' + address);
   return ret;
 }
-export function isValidAddress(address: string): boolean { 
+export function isValidAddress(address: string): boolean {
   let ret = false;
-  try { 
+  try {
     validAddress(address);
     ret = true;
-  } catch (e) { }
+  } catch (e) {}
   return ret;
 }
 
@@ -1184,12 +1184,12 @@ export function validBech32Address(address: string): StakeAddress | Address {
   if (!isBech32(address)) throw new Error('Invalid bech32 address');
   return validAddress(address);
 }
-export function isValidBech32Address(address: string): boolean { 
+export function isValidBech32Address(address: string): boolean {
   let ret = false;
-  try { 
+  try {
     validBech32Address(address);
     ret = true;
-  } catch (e) { }
+  } catch (e) {}
   return ret;
 }
 
