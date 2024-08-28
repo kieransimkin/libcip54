@@ -224,7 +224,7 @@ OFFSET $2
   return txs;
 }
 
-export async function getAdaHandleFromAddress(walletAddr: string): Promise<object | null> {
+export async function getAdaHandleFromAddress(walletAddr: string, cacheFail: boolean = false): Promise<object | null> {
   ensureInit();
   if (!_pgClient) return [];
   let cresult;
@@ -257,6 +257,9 @@ export async function getAdaHandleFromAddress(walletAddr: string): Promise<objec
     await doCache('getAdaHandleFromAddress:' + stake, handle);
     return handle;
   } else {
+    if (cacheFail) { 
+      await doCache('getAdaHandleFromAddress:' + stake, '');
+    }
     return null;
   }
 }
