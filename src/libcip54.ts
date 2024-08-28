@@ -257,7 +257,7 @@ export async function getAdaHandleFromAddress(walletAddr: string, cacheFail: boo
     await doCache('getAdaHandleFromAddress:' + stake, handle);
     return handle;
   } else {
-    if (cacheFail) { 
+    if (cacheFail) {
       await doCache('getAdaHandleFromAddress:' + stake, '');
     }
     return null;
