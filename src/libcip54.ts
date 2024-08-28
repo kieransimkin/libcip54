@@ -15,7 +15,7 @@ import {
   CredentialType,
   StakeKeyHash,
   StakeValidatorHash,
-  StakeCredentialsType
+  StakeCredentialsType,
 } from '@harmoniclabs/cardano-ledger-ts';
 let _networkId: number | null = null;
 let _pgClient: pgCon.Client | null = null;
@@ -1127,21 +1127,19 @@ export const getSmartImports = async (
 export function getStake(baseAddress: string): string | null {
   ensureInit();
   const Addr = validAddress(baseAddress);
-  let type: StakeCredentialsType='stakeKey';
+  let type: StakeCredentialsType = 'stakeKey';
   if (!Addr) return null;
   if (!(Addr instanceof StakeAddress)) {
-    let hash:Hash28;
-    if (Addr?.stakeCreds?.hash && Addr.stakeCreds.hash instanceof StakeKeyHash) { 
+    let hash: Hash28;
+    if (Addr?.stakeCreds?.hash && Addr.stakeCreds.hash instanceof StakeKeyHash) {
       hash = Addr.stakeCreds.hash;
-    } else if (Addr?.stakeCreds?.hash && Addr.stakeCreds.hash instanceof StakeValidatorHash) { 
+    } else if (Addr?.stakeCreds?.hash && Addr.stakeCreds.hash instanceof StakeValidatorHash) {
       hash = Addr.stakeCreds.hash;
-      type='script';
-    } else { 
+      type = 'script';
+    } else {
       hash = Addr?.paymentCreds?.hash;
     }
-    return new StakeAddress(_networkId === 1 ? 'mainnet' : 'testnet', hash, type)
-      .toString()
-      .toLowerCase();
+    return new StakeAddress(_networkId === 1 ? 'mainnet' : 'testnet', hash, type).toString().toLowerCase();
   } else {
     return Addr.toString().toLowerCase();
   }
