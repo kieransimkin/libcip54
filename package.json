@@ -45,8 +45,6 @@
     "@harmoniclabs/uplc": "^1.2.4",
     "@types/pg": "^8.10.1",
     "axios": "^1.7.4",
-    "eslint": "^9.9.0",
-    "eslint-config-next": "^14.2.6",
     "is-ipfs": "^8.0.1",
     "pg": "^8.11.0",
     "punycode": "^2.3.1",
