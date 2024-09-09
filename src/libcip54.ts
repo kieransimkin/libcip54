@@ -1429,7 +1429,7 @@ export function utf8ToHex(str: string) {
 
 export function hexToUtf8(str1: string)
  {
-	let hex  = str1.toString();
+	const hex  = str1.toString();
 	let str = '';
 	for (let n = 0; n < hex.length; n += 2) {
     const byte = parseInt(hex.substr(n,2),16);
