@@ -252,7 +252,7 @@ export async function getAdaHandleFromAddress(walletAddr: string, cacheFail: boo
   );
   handle = handle?.rows[0]?.handle;
   if (handle) {
-    handle = hexToAscii(handle);
+    handle = hexToUtf8(handle);
     handle = punycode.toUnicode(handle);
     await doCache('getAdaHandleFromAddress:' + stake, handle);
     return handle;
@@ -1386,3 +1386,82 @@ export function asciiToHex(str: string) {
   }
   return arr1.join('');
 }
+
+export function utf8ToHex(str: string) {
+  const arr1 = [];
+	for (const char of str) {
+		const codepoint:number = char.codePointAt(0) || 0;
+
+		if (codepoint < 128) {
+			arr1.push(codepoint.toString(16));
+			continue;
+		}
+		
+		if (codepoint < 2048) {
+			const num1 = 0b11000000 | (codepoint >> 6);
+			const num2 = 0b10000000 | (codepoint & 0b111111);
+			arr1.push(num1.toString(16), num2.toString(16));
+      
+			continue;
+		}
+		
+		if (codepoint < 65536) {
+			const num1 = 0b11100000 | (codepoint >> 12);
+			const num2 = 0b10000000 | ((codepoint >> 6) & 0b111111);
+			const num3 = 0b10000000 | (codepoint & 0b111111);
+			
+			arr1.push(num1.toString(16), num2.toString(16), num3.toString(16));
+			continue;
+		}
+		
+		const num1 = 0b11110000 | (codepoint >> 18);
+		const num2 = 0b10000000 | ((codepoint >> 12) & 0b111111);
+		const num3 = 0b10000000 | ((codepoint >> 6) & 0b111111);
+		const num4 = 0b10000000 | (codepoint & 0b111111);
+		
+		arr1.push(num1.toString(16), num2.toString(16), num3.toString(16), num4.toString(16));
+    
+  
+  }
+  return arr1.join('');
+}
+
+
+export function hexToUtf8(str1: string)
+ {
+	var hex  = str1.toString();
+	var str = '';
+	for (var n = 0; n < hex.length; n += 2) {
+    const byte = parseInt(hex.substr(n,2),16);
+    if (!(byte & 0b10000000)) {
+			str+= String.fromCodePoint(byte);
+			continue;
+		}
+		
+		let codepoint, byteLen;
+		
+		if (byte >> 5 === 0b110) {
+			codepoint = 0b11111 & byte;
+			byteLen = 2;
+		} else if (byte >> 4 === 0b1110) {
+			codepoint = 0b1111 & byte;
+			byteLen = 3;
+		} else if (byte >> 3 === 0b11110) {
+			codepoint = 0b111 & byte;
+			byteLen = 4;
+		} else {
+			// this is invalid UTF-8 or we are in middle of a character
+			throw new Error('found invalid UTF-8 byte ' + byte);
+		}
+
+		for (let j = 1; j < byteLen; j++) {
+			const num = 0b00111111 & parseInt(hex.substr(n + j*2,2),16);
+			const shift = 6 * (byteLen - j - 1);
+			codepoint |= num << shift;
+		}
+		
+		str+=String.fromCodePoint(codepoint)
+    n+=(byteLen-1)*2;
+	}
+	return str;
+ }
